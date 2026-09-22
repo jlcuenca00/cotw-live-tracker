@@ -1,8 +1,8 @@
 {
-  "name": "Patch 9.3 community offsets - 2026-09-16",
+  "name": "Patch 9.3 verified offsets - 2026-09-16",
   "gameBuild": "theHunterCotW_F.exe build observed 2026-09-16",
   "gamePatch": "9.3",
-  "executableSha256": null,
+  "executableSha256": "89DBAB025114090C91A63AE7F0533EE84EEE3C48F4B8543224B359C31B794C22",
   "source": "https://gist.github.com/Cvar1984/b8425fd7e1df271509db5af8273a013f",
   "communityDerived": true,
   "maxAnimals": 512,
