@@ -30,6 +30,21 @@ internal static class OffsetProfileLoader
             throw new InvalidDataException("Offset profile must include a gameBuild value.");
         }
 
+        if (profile.Offsets.Count == 0)
+        {
+            throw new InvalidDataException("Offset profile does not contain any offsets.");
+        }
+
+        if (profile.MaxAnimals <= 0 || profile.MaxAnimals > 4096)
+        {
+            throw new InvalidDataException("maxAnimals is outside the accepted range.");
+        }
+
+        if (!float.IsFinite(profile.MaxDistanceMeters) || profile.MaxDistanceMeters <= 0)
+        {
+            throw new InvalidDataException("maxDistanceMeters must be a positive finite number.");
+        }
+
         return profile;
     }
 }
