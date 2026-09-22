@@ -101,47 +101,76 @@ internal static class TrackerSelfTest
 
     private static void TestPopulationRecordRecognition()
     {
-        var payload = Enumerable.Repeat((byte)0xA5, 96).ToArray();
-        const int offset = 32;
-
-        payload[offset] = 1;
-        payload[offset + 1] = 0;
-        payload[offset + 2] = 0;
-        payload[offset + 3] = 0;
-        WriteSingle(payload, offset + 4, 72.5f);
-        WriteSingle(payload, offset + 8, 248.25f);
-        payload[offset + 12] = 0;
-        payload[offset + 13] = 0;
-        payload[offset + 14] = 0;
-        payload[offset + 15] = 0;
-        WriteUInt32(payload, offset + 16, 123456789u);
-        WriteUInt32(payload, offset + 20, 98765u);
-        WriteSingle(payload, offset + 24, 6800f);
-        WriteSingle(payload, offset + 28, 5200f);
-
-        var records = PopulationFileReader.EnumerateCandidateRecords(payload);
-        if (records.Count != 1)
+        var animal = Struct(new Dictionary<string, AdfNode>
         {
-            throw new InvalidOperationException(
-                $"Expected one population record candidate, got {records.Count}.");
+            ["Gender"] = Scalar((uint)1),
+            ["Weight"] = Scalar(72.5f),
+            ["Score"] = Scalar(248.25f),
+            ["IsGreatOne"] = Scalar((uint)0),
+            ["IsScripted"] = Scalar((uint)0),
+            ["VisualVariationSeed"] = Scalar(123456789u),
+            ["Id"] = Scalar(98765u),
+            ["MapPosition"] = Struct(new Dictionary<string, AdfNode>
+            {
+                ["X"] = Scalar(6800f),
+                ["Y"] = Scalar(5200f)
+            })
+        });
+
+        var group = Struct(new Dictionary<string, AdfNode>
+        {
+            ["Animals"] = Array([animal])
+        });
+
+        var speciesPopulation = Struct(new Dictionary<string, AdfNode>
+        {
+            ["Groups"] = Array([group])
+        });
+
+        var root = Struct(new Dictionary<string, AdfNode>
+        {
+            ["Populations"] = Array([speciesPopulation])
+        });
+
+        var document = new AdfDocument(
+            Version: 3,
+            Types: new Dictionary<uint, AdfTypeDefinition>(),
+            Instances: [],
+            RootValues: [root]);
+
+        var reserve = new ReservePopulationDefinition(
+            "synthetic",
+            "Synthetic Reserve",
+            ["whitetail_deer"]);
+
+        var populations = PopulationFileReader.ParsePopulations(document, reserve);
+        if (populations.Count != 1 || populations[0].Animals.Count != 1)
+        {
+            throw new InvalidOperationException("Structured population parser did not return one synthetic animal.");
         }
 
-        var record = records[0];
-        if (record.Gender != "male" ||
+        var record = populations[0].Animals[0];
+        if (record.Species != "whitetail_deer" ||
+            record.Gender != "male" ||
             record.Weight != 72.5f ||
             record.Score != 248.25f ||
             record.VisualVariationSeed != 123456789u ||
-            record.Id != 98765u)
+            record.Id != 98765u ||
+            record.MapX != 6800f ||
+            record.MapY != 5200f)
         {
-            throw new InvalidOperationException("Population record candidate decoded incorrectly.");
-        }
-
-        var mapDelta = record.HorizontalDistanceTo(new Float3(6803f, 0f, 5204f));
-        if (MathF.Abs(mapDelta - 5f) > 0.001f)
-        {
-            throw new InvalidOperationException($"Unexpected population map delta {mapDelta}.");
+            throw new InvalidOperationException("Structured population record decoded incorrectly.");
         }
     }
+
+    private static AdfNode Struct(IReadOnlyDictionary<string, AdfNode> fields) =>
+        new(0, 0, fields);
+
+    private static AdfNode Array(IReadOnlyList<AdfNode> items) =>
+        new(0, 0, items);
+
+    private static AdfNode Scalar(object value) =>
+        new(0, 0, value);
 
     private static nint Ptr(long value) => (nint)value;
 
@@ -170,9 +199,6 @@ internal static class TrackerSelfTest
         BinaryPrimitives.WriteInt32LittleEndian(
             buffer.AsSpan(offset, sizeof(int)),
             BitConverter.SingleToInt32Bits(value));
-
-    private static void WriteUInt32(byte[] buffer, int offset, uint value) =>
-        BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(offset, sizeof(uint)), value);
 
     private static byte[] Concat(params byte[][] arrays)
     {

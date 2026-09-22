@@ -1,12 +1,13 @@
-using System.Buffers.Binary;
 using System.IO.Compression;
-using CotwLiveTracker.Memory;
 
 namespace CotwLiveTracker.Population;
 
-internal sealed record PopulationRecordCandidate(
-    int Offset,
-    byte GenderValue,
+internal sealed record PopulationAnimalRecord(
+    string Species,
+    int SpeciesIndex,
+    int GroupIndex,
+    int AnimalIndex,
+    string Gender,
     float Weight,
     float Score,
     bool IsGreatOne,
@@ -14,32 +15,46 @@ internal sealed record PopulationRecordCandidate(
     uint VisualVariationSeed,
     uint Id,
     float MapX,
-    float MapY)
-{
-    public string Gender => GenderValue == 1 ? "male" : "female";
+    float MapY);
 
-    public float HorizontalDistanceTo(Float3 position)
-    {
-        var dx = MapX - position.X;
-        var dz = MapY - position.Z;
-        return MathF.Sqrt((dx * dx) + (dz * dz));
-    }
+internal sealed record PopulationGroupRecord(
+    string Species,
+    int SpeciesIndex,
+    int GroupIndex,
+    IReadOnlyList<PopulationAnimalRecord> Animals);
+
+internal sealed record PopulationSpeciesRecord(
+    string Species,
+    int SpeciesIndex,
+    IReadOnlyList<PopulationGroupRecord> Groups)
+{
+    public IReadOnlyList<PopulationAnimalRecord> Animals =>
+        Groups.SelectMany(group => group.Animals).ToArray();
 }
 
 internal sealed record PopulationReadResult(
     string FilePath,
     int FileSizeBytes,
     int AdfPayloadSizeBytes,
-    IReadOnlyList<PopulationRecordCandidate> Records);
+    uint AdfVersion,
+    string ReserveName,
+    IReadOnlyList<PopulationSpeciesRecord> Species)
+{
+    public IReadOnlyList<PopulationAnimalRecord> Animals =>
+        Species.SelectMany(species => species.Animals).ToArray();
+}
 
 internal static class PopulationFileReader
 {
     private const int FileHeaderLength = 32;
     private const int CompressionHeaderLength = 5;
-    private const int AnimalRecordLength = 32;
 
-    public static PopulationReadResult Read(string path)
+    public static PopulationReadResult Read(
+        string path,
+        ReservePopulationDefinition reserve)
     {
+        ArgumentNullException.ThrowIfNull(reserve);
+
         if (string.IsNullOrWhiteSpace(path))
         {
             throw new ArgumentException("Population file path is required.", nameof(path));
@@ -48,9 +63,16 @@ internal static class PopulationFileReader
         var fullPath = Path.GetFullPath(path);
         var fileBytes = File.ReadAllBytes(fullPath);
         var payload = ExtractAdfPayload(fileBytes);
-        var records = EnumerateCandidateRecords(payload);
+        var document = ApexAdfReader.Read(payload);
+        var species = ParsePopulations(document, reserve);
 
-        return new PopulationReadResult(fullPath, fileBytes.Length, payload.Length, records);
+        return new PopulationReadResult(
+            fullPath,
+            fileBytes.Length,
+            payload.Length,
+            document.Version,
+            reserve.DisplayName,
+            species);
     }
 
     internal static byte[] ExtractAdfPayload(byte[] fileBytes)
@@ -80,82 +102,209 @@ internal static class PopulationFileReader
         return decompressed[CompressionHeaderLength..];
     }
 
-    internal static IReadOnlyList<PopulationRecordCandidate> EnumerateCandidateRecords(byte[] payload)
+    internal static IReadOnlyList<PopulationSpeciesRecord> ParsePopulations(
+        AdfDocument document,
+        ReservePopulationDefinition reserve)
     {
-        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(reserve);
 
-        var records = new List<PopulationRecordCandidate>();
-        for (var offset = 0; offset + AnimalRecordLength <= payload.Length; offset += sizeof(int))
+        var populationsNode = document.RootValues
+            .Select(root => FindField(root, "Populations"))
+            .FirstOrDefault(node => node is not null)
+            ?? throw new InvalidDataException("ADF population root does not contain a 'Populations' field.");
+
+        var populations = populationsNode.Items;
+        var result = new List<PopulationSpeciesRecord>(populations.Count);
+
+        for (var speciesIndex = 0; speciesIndex < populations.Count; speciesIndex++)
         {
-            if (TryReadRecord(payload, offset, out var record))
+            var speciesKey = speciesIndex < reserve.Species.Count
+                ? reserve.Species[speciesIndex]
+                : $"unknown_species_{speciesIndex}";
+
+            var population = populations[speciesIndex];
+            if (!population.TryGetField("Groups", out var groupsNode) || groupsNode is null)
             {
-                records.Add(record!);
+                result.Add(new PopulationSpeciesRecord(speciesKey, speciesIndex, []));
+                continue;
             }
+
+            var groups = new List<PopulationGroupRecord>(groupsNode.Items.Count);
+            for (var groupIndex = 0; groupIndex < groupsNode.Items.Count; groupIndex++)
+            {
+                var groupNode = groupsNode.Items[groupIndex];
+                if (!groupNode.TryGetField("Animals", out var animalsNode) || animalsNode is null)
+                {
+                    groups.Add(new PopulationGroupRecord(speciesKey, speciesIndex, groupIndex, []));
+                    continue;
+                }
+
+                var animals = new List<PopulationAnimalRecord>(animalsNode.Items.Count);
+                for (var animalIndex = 0; animalIndex < animalsNode.Items.Count; animalIndex++)
+                {
+                    animals.Add(ParseAnimal(
+                        animalsNode.Items[animalIndex],
+                        speciesKey,
+                        speciesIndex,
+                        groupIndex,
+                        animalIndex));
+                }
+
+                groups.Add(new PopulationGroupRecord(speciesKey, speciesIndex, groupIndex, animals));
+            }
+
+            result.Add(new PopulationSpeciesRecord(speciesKey, speciesIndex, groups));
         }
 
-        return records;
+        return result;
     }
 
-    private static bool TryReadRecord(byte[] payload, int offset, out PopulationRecordCandidate? record)
+    private static PopulationAnimalRecord ParseAnimal(
+        AdfNode node,
+        string species,
+        int speciesIndex,
+        int groupIndex,
+        int animalIndex)
     {
-        record = null;
-        var data = payload.AsSpan(offset, AnimalRecordLength);
-
-        var gender = data[0];
-        if (gender is not (1 or 2) || data[1] != 0 || data[2] != 0 || data[3] != 0)
+        var genderValue = RequiredUInt32(node, "Gender");
+        var gender = genderValue switch
         {
-            return false;
+            1 => "male",
+            2 => "female",
+            _ => $"unknown({genderValue})"
+        };
+
+        var weight = RequiredSingle(node, "Weight");
+        var score = RequiredSingle(node, "Score");
+        var seed = RequiredUInt32(node, "VisualVariationSeed");
+        var id = RequiredUInt32(node, "Id");
+
+        var greatOne = TryUInt32(node, "IsGreatOne", out var directGreatOne)
+            ? directGreatOne == 1
+            : TryNestedUInt32(node, "FeatureModifiers", "Flags", out var flags) && flags == 1;
+
+        var scripted = TryUInt32(node, "IsScripted", out var scriptedValue) && scriptedValue == 1;
+
+        var mapX = 0f;
+        var mapY = 0f;
+        if (node.TryGetField("MapPosition", out var mapPosition) && mapPosition is not null)
+        {
+            _ = TrySingle(mapPosition, "X", out mapX);
+            _ = TrySingle(mapPosition, "Y", out mapY);
         }
 
-        var weight = ReadSingle(data, 4);
-        var score = ReadSingle(data, 8);
-        var greatOne = data[12];
-        var scripted = data[13];
-
-        if (greatOne > 1 ||
-            scripted > 1 ||
-            data[14] != 0 ||
-            data[15] != 0 ||
-            !float.IsFinite(weight) ||
-            !float.IsFinite(score) ||
-            weight <= 0.001f ||
-            weight > 5_000f ||
-            score < 0f ||
-            score > 10_000f)
+        if (!float.IsFinite(weight) || weight < 0f ||
+            !float.IsFinite(score) || score < 0f ||
+            !float.IsFinite(mapX) ||
+            !float.IsFinite(mapY))
         {
-            return false;
+            throw new InvalidDataException(
+                $"Invalid animal values in {species} group {groupIndex}, animal {animalIndex}.");
         }
 
-        var seed = BinaryPrimitives.ReadUInt32LittleEndian(data[16..20]);
-        var id = BinaryPrimitives.ReadUInt32LittleEndian(data[20..24]);
-        var mapX = ReadSingle(data, 24);
-        var mapY = ReadSingle(data, 28);
-
-        if (!float.IsFinite(mapX) ||
-            !float.IsFinite(mapY) ||
-            MathF.Abs(mapX) > 100_000f ||
-            MathF.Abs(mapY) > 100_000f)
-        {
-            return false;
-        }
-
-        record = new PopulationRecordCandidate(
-            offset,
+        return new PopulationAnimalRecord(
+            species,
+            speciesIndex,
+            groupIndex,
+            animalIndex,
             gender,
             weight,
             score,
-            greatOne == 1,
-            scripted == 1,
+            greatOne,
+            scripted,
             seed,
             id,
             mapX,
             mapY);
+    }
+
+    private static AdfNode? FindField(AdfNode node, string fieldName)
+    {
+        if (node.TryGetField(fieldName, out var direct) && direct is not null)
+        {
+            return direct;
+        }
+
+        if (node.Value is IReadOnlyDictionary<string, AdfNode> fields)
+        {
+            foreach (var child in fields.Values)
+            {
+                var found = FindField(child, fieldName);
+                if (found is not null)
+                {
+                    return found;
+                }
+            }
+        }
+        else if (node.Value is IReadOnlyList<AdfNode> items)
+        {
+            foreach (var child in items)
+            {
+                var found = FindField(child, fieldName);
+                if (found is not null)
+                {
+                    return found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static uint RequiredUInt32(AdfNode node, string fieldName)
+    {
+        if (!node.TryGetField(fieldName, out var field) || field is null)
+        {
+            throw new InvalidDataException($"Animal record is missing '{fieldName}'.");
+        }
+
+        return field.AsUInt32();
+    }
+
+    private static float RequiredSingle(AdfNode node, string fieldName)
+    {
+        if (!node.TryGetField(fieldName, out var field) || field is null)
+        {
+            throw new InvalidDataException($"Animal record is missing '{fieldName}'.");
+        }
+
+        return field.AsSingle();
+    }
+
+    private static bool TryUInt32(AdfNode node, string fieldName, out uint value)
+    {
+        value = 0;
+        if (!node.TryGetField(fieldName, out var field) || field is null)
+        {
+            return false;
+        }
+
+        value = field.AsUInt32();
         return true;
     }
 
-    private static float ReadSingle(ReadOnlySpan<byte> buffer, int offset)
+    private static bool TryNestedUInt32(
+        AdfNode node,
+        string parentField,
+        string childField,
+        out uint value)
     {
-        var bits = BinaryPrimitives.ReadInt32LittleEndian(buffer.Slice(offset, sizeof(int)));
-        return BitConverter.Int32BitsToSingle(bits);
+        value = 0;
+        return node.TryGetField(parentField, out var parent) &&
+               parent is not null &&
+               TryUInt32(parent, childField, out value);
+    }
+
+    private static bool TrySingle(AdfNode node, string fieldName, out float value)
+    {
+        value = 0f;
+        if (!node.TryGetField(fieldName, out var field) || field is null)
+        {
+            return false;
+        }
+
+        value = field.AsSingle();
+        return true;
     }
 }

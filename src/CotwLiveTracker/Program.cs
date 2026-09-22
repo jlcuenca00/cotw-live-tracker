@@ -25,24 +25,40 @@ var watch = HasFlag(args, "--watch");
 var intervalMs = GetIntOption(args, "--interval-ms", 1000, 100, 10_000);
 var populationFileOption = GetOption(args, "--population-file");
 var populationReserveOption = GetOption(args, "--population-reserve");
-var populationTop = GetIntOption(args, "--population-top", 3, 1, 10);
+var populationTop = GetIntOption(args, "--population-top", 3, 1, 20);
 
 string? populationPath = null;
+ReservePopulationDefinition? populationReserve = null;
 try
 {
-    if (!string.IsNullOrWhiteSpace(populationFileOption))
+    int? reserveIndex = null;
+    if (!string.IsNullOrWhiteSpace(populationReserveOption))
     {
-        populationPath = Path.GetFullPath(populationFileOption);
-    }
-    else if (!string.IsNullOrWhiteSpace(populationReserveOption))
-    {
-        if (!int.TryParse(populationReserveOption, out var reserveIndex) || reserveIndex < 0 || reserveIndex > 100)
+        if (!int.TryParse(populationReserveOption, out var parsedReserveIndex) ||
+            parsedReserveIndex < 0 ||
+            parsedReserveIndex > 100)
         {
             Console.Error.WriteLine("--population-reserve must be an integer between 0 and 100.");
             return 10;
         }
 
-        populationPath = PopulationFileLocator.FindReservePopulation(reserveIndex);
+        reserveIndex = parsedReserveIndex;
+        populationReserve = PopulationReserveCatalog.Get(parsedReserveIndex);
+    }
+
+    if (!string.IsNullOrWhiteSpace(populationFileOption))
+    {
+        if (populationReserve is null)
+        {
+            Console.Error.WriteLine("--population-file requires --population-reserve so species order can be decoded.");
+            return 10;
+        }
+
+        populationPath = Path.GetFullPath(populationFileOption);
+    }
+    else if (reserveIndex is not null)
+    {
+        populationPath = PopulationFileLocator.FindReservePopulation(reserveIndex.Value);
     }
 }
 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -53,11 +69,11 @@ catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
 
 if (watch && populationPath is not null)
 {
-    Console.Error.WriteLine("Population correlation is currently a one-snapshot diagnostic. Remove --watch and run again.");
+    Console.Error.WriteLine("Structured population reading is currently one-shot. Remove --watch and run again.");
     return 10;
 }
 
-Console.WriteLine("COTW Live Tracker v0.3");
+Console.WriteLine("COTW Live Tracker v0.4");
 Console.WriteLine($"Looking for process: {processName}.exe");
 
 using var process = GameProcessLocator.Find(processName);
@@ -167,8 +183,11 @@ try
         {
             try
             {
-                var population = PopulationFileReader.Read(populationPath);
-                PrintPopulationCorrelation(snapshot, population, speciesFilter, populationTop);
+                var population = PopulationFileReader.Read(
+                    populationPath,
+                    populationReserve
+                    ?? throw new InvalidOperationException("Population reserve metadata is unavailable."));
+                PrintPopulationSummary(population, speciesFilter, populationTop);
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
             {
@@ -195,7 +214,7 @@ try
             Console.Clear();
         }
 
-        Console.WriteLine("COTW Live Tracker v0.3 - LIVE");
+        Console.WriteLine("COTW Live Tracker v0.4 - LIVE");
         Console.WriteLine($"Profile: {profile.Name}");
         PrintSnapshot(tracker.ReadSnapshot(), speciesFilter);
 
@@ -256,60 +275,75 @@ static void PrintSnapshot(LiveSnapshot snapshot, string? speciesFilter)
     }
 }
 
-static void PrintPopulationCorrelation(
-    LiveSnapshot snapshot,
+static void PrintPopulationSummary(
     PopulationReadResult population,
     string? speciesFilter,
-    int topMatches)
+    int topRecords)
 {
     Console.WriteLine();
-    Console.WriteLine("POPULATION CORRELATION DIAGNOSTIC");
+    Console.WriteLine("FULL RESERVE POPULATION");
+    Console.WriteLine($"Reserve: {population.ReserveName}");
     Console.WriteLine($"Population file: {population.FilePath}");
     Console.WriteLine($"Population file size: {population.FileSizeBytes:N0} bytes");
     Console.WriteLine($"Decompressed ADF payload: {population.AdfPayloadSizeBytes:N0} bytes");
-    Console.WriteLine($"32-byte animal-record candidates: {population.Records.Count:N0}");
-    Console.WriteLine("MAPΔ compares a population record's stored MapPosition to live X/Z.");
-    Console.WriteLine("Small, repeatable MAPΔ values indicate that the record layout/position correlation is useful.");
+    Console.WriteLine($"ADF version: {population.AdfVersion}");
+    Console.WriteLine($"Animals decoded: {population.Animals.Count:N0}");
 
-    IEnumerable<AnimalSnapshot> animals = snapshot.Animals;
+    IEnumerable<PopulationSpeciesRecord> species = population.Species;
     if (!string.IsNullOrWhiteSpace(speciesFilter))
     {
-        animals = animals.Where(animal =>
-            animal.Species.Contains(speciesFilter, StringComparison.OrdinalIgnoreCase));
+        species = species.Where(item =>
+            item.Species.Contains(speciesFilter.Replace(' ', '_'), StringComparison.OrdinalIgnoreCase) ||
+            item.Species.Replace('_', ' ').Contains(speciesFilter, StringComparison.OrdinalIgnoreCase));
     }
 
-    foreach (var animal in animals.OrderBy(animal => animal.DistanceMeters))
+    var displayed = species
+        .Where(item => item.Animals.Count > 0)
+        .ToArray();
+
+    if (displayed.Length == 0)
+    {
+        Console.WriteLine("No matching population species.");
+        return;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("SPECIES                 GROUPS  TOTAL   MALE FEMALE  GO   MAX WT  MAX SCORE");
+    Console.WriteLine("----------------------  ------  ------  ----- ------  --  -------  ---------");
+
+    foreach (var item in displayed)
+    {
+        var animals = item.Animals;
+        var males = animals.Count(animal => animal.Gender == "male");
+        var females = animals.Count(animal => animal.Gender == "female");
+        var greatOnes = animals.Count(animal => animal.IsGreatOne);
+        var maxWeight = animals.Max(animal => animal.Weight);
+        var maxScore = animals.Max(animal => animal.Score);
+
+        Console.WriteLine(
+            $"{Truncate(item.Species.Replace('_', ' '), 22),-22}  " +
+            $"{item.Groups.Count,6}  {animals.Count,6}  {males,5} {females,6}  " +
+            $"{greatOnes,2}  {maxWeight,7:F2}  {maxScore,9:F2}");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"Top {topRecords} population record(s) per displayed species by saved score:");
+
+    foreach (var item in displayed)
     {
         Console.WriteLine();
-        Console.WriteLine(
-            $"LIVE {animal.Species} @ X/Z {animal.Position.X:F1}/{animal.Position.Z:F1} " +
-            $"({animal.DistanceMeters:F0}m from camera)");
+        Console.WriteLine(item.Species.Replace('_', ' ').ToUpperInvariant());
 
-        var matches = population.Records
-            .Select(record => new
-            {
-                Record = record,
-                Distance = record.HorizontalDistanceTo(animal.Position)
-            })
-            .OrderBy(item => item.Distance)
-            .Take(topMatches)
-            .ToArray();
-
-        if (matches.Length == 0)
+        foreach (var animal in item.Animals
+                     .OrderByDescending(animal => animal.IsGreatOne)
+                     .ThenByDescending(animal => animal.Score)
+                     .Take(topRecords))
         {
-            Console.WriteLine("  No candidate population records.");
-            continue;
-        }
-
-        foreach (var match in matches)
-        {
-            var record = match.Record;
             Console.WriteLine(
-                $"  MAPΔ {match.Distance,7:F1}m  {record.Gender,-6}  " +
-                $"wt {record.Weight,8:F2}  score {record.Score,8:F2}  " +
-                $"GO {(record.IsGreatOne ? "yes" : "no "),-3}  " +
-                $"seed {record.VisualVariationSeed,10}  id {record.Id,10}  " +
-                $"map {record.MapX,8:F1}/{record.MapY,8:F1}  @0x{record.Offset:X}");
+                $"  G{animal.GroupIndex,-3} #{animal.AnimalIndex,-3} " +
+                $"{animal.Gender,-7} wt {animal.Weight,8:F2}  score {animal.Score,8:F2}  " +
+                $"GO {(animal.IsGreatOne ? "yes" : "no "),-3}  " +
+                $"seed {animal.VisualVariationSeed,10}  id {animal.Id,10}");
         }
     }
 }
