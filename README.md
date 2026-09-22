@@ -8,7 +8,7 @@ Build a live tracker that can display currently spawned animals, their positions
 
 ## Current status
 
-### v0.3 live + population correlation diagnostic
+### v0.4 structured full-reserve population reader
 
 The tracker can now:
 
@@ -25,10 +25,13 @@ The tracker can now:
 - continuously refresh in console watch mode;
 - locate a reserve population save file without touching backup slot copies;
 - decompress the read-only COTW population payload;
-- recognize candidate 32-byte animal records containing gender, weight, score, Great One/scripted flags, visual-variation seed, ID and stored map position;
-- compare those stored population map positions against live animal X/Z as a research diagnostic.
+- parse the APEX ADF header, name table, type definitions, structures and arrays;
+- walk the real `Populations -> Groups -> Animals` hierarchy;
+- associate each population slot with the reserve's species order;
+- decode each animal's gender, weight, saved score, Great One/scripted flags, visual-variation seed, ID and stored map position;
+- summarize full-reserve totals and herd/group membership by species.
 
-The population correlation is intentionally diagnostic in v0.3. Species-to-population grouping, trophy labels, fur-name decoding and the graphical radar are **not implemented yet**.
+Difficulty/level and trophy labels can now be derived from the structured weight/score records in a later step. Fur-name decoding and the graphical radar are **not implemented yet**.
 
 ## Build
 
@@ -76,7 +79,7 @@ Optional refresh interval (100-10000 ms):
 dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --watch --interval-ms 500
 ```
 
-## Population correlation diagnostic
+## Full-reserve population scan
 
 For Layton Lake (population index 1), let the tracker find the active save automatically:
 
@@ -84,15 +87,17 @@ For Layton Lake (population index 1), let the tracker find the active save autom
 dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --population-reserve 1
 ```
 
-Or provide a population file explicitly:
+Or provide a population file explicitly together with its reserve index:
 
 ```powershell
-dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --population-file "C:\\path\\to\\animal_population_1"
+dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --population-reserve 1 --population-file "C:\\path\\to\\animal_population_1"
 ```
 
-The diagnostic prints the nearest candidate population records for each currently loaded animal. `MAPΔ` is the horizontal distance between the record's stored `MapPosition` and the live animal's X/Z. Small, repeatable values would validate a practical bridge between full-reserve population metadata and live runtime entities.
+The structured reader prints reserve-wide species totals, group counts, male/female counts, Great One counts, maximum saved weight/score, and the top population records for each species.
 
-Use `--population-top 1` through `10` to change how many candidates are shown per live animal. Population correlation is currently one-shot and cannot be combined with `--watch`.
+Use `--population-top 1` through `20` to change how many top records are shown per species. Use `--species "whitetail"` to narrow both the live list and population output.
+
+Population reading is currently one-shot and cannot be combined with `--watch`.
 
 ## Offset profile status
 
@@ -116,10 +121,10 @@ If the executable changes or those checks fail, the tracker stops instead of tru
 
 ## Roadmap
 
-1. Validate population-record correlation against the live Patch 9.3 session.
-2. Build a structured full-reserve population reader with species/group identity.
-3. Derive difficulty/level and trophy labels from verified population weight/score data, then decode fur from the visual seed.
-4. Match loaded runtime entities to their full population records.
+1. Validate the structured ADF population reader against the real Layton Patch 9.3 save.
+2. Derive difficulty/level and trophy labels from verified population weight/score data.
+3. Decode fur names from visual-variation seeds.
+4. Research a reliable identity bridge between loaded runtime entities and their population records.
 5. Add a cached high-frequency entity reader and 2D radar/map UI.
 6. Add HM-focused filtering and kill/respawn history.
 
@@ -136,4 +141,4 @@ Population-record field semantics and the active-save decompression layout were 
 
 https://github.com/Pure-Winter-hue/apc-pw
 
-The tracker remains read-only and does not use APC's population modification or live injection features.
+The tracker remains read-only and does not use APC's population modification or live injection features. The ADF reader was implemented independently in C# from the documented structure semantics.
