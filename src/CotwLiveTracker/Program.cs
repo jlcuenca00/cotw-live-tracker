@@ -5,6 +5,7 @@ using CotwLiveTracker.Diagnostics;
 using CotwLiveTracker.Game;
 using CotwLiveTracker.Infrastructure;
 using CotwLiveTracker.Memory;
+using CotwLiveTracker.Population;
 
 if (HasFlag(args, "--selftest"))
 {
@@ -22,8 +23,41 @@ var offsetsPath = GetOption(args, "--offsets") ?? FindBundledProfile();
 var speciesFilter = GetOption(args, "--species");
 var watch = HasFlag(args, "--watch");
 var intervalMs = GetIntOption(args, "--interval-ms", 1000, 100, 10_000);
+var populationFileOption = GetOption(args, "--population-file");
+var populationReserveOption = GetOption(args, "--population-reserve");
+var populationTop = GetIntOption(args, "--population-top", 3, 1, 10);
 
-Console.WriteLine("COTW Live Tracker v0.2");
+string? populationPath = null;
+try
+{
+    if (!string.IsNullOrWhiteSpace(populationFileOption))
+    {
+        populationPath = Path.GetFullPath(populationFileOption);
+    }
+    else if (!string.IsNullOrWhiteSpace(populationReserveOption))
+    {
+        if (!int.TryParse(populationReserveOption, out var reserveIndex) || reserveIndex < 0 || reserveIndex > 100)
+        {
+            Console.Error.WriteLine("--population-reserve must be an integer between 0 and 100.");
+            return 10;
+        }
+
+        populationPath = PopulationFileLocator.FindReservePopulation(reserveIndex);
+    }
+}
+catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+{
+    Console.Error.WriteLine($"Could not resolve the population file: {ex.Message}");
+    return 10;
+}
+
+if (watch && populationPath is not null)
+{
+    Console.Error.WriteLine("Population correlation is currently a one-snapshot diagnostic. Remove --watch and run again.");
+    return 10;
+}
+
+Console.WriteLine("COTW Live Tracker v0.3");
 Console.WriteLine($"Looking for process: {processName}.exe");
 
 using var process = GameProcessLocator.Find(processName);
@@ -126,7 +160,23 @@ try
 
     if (!watch)
     {
-        PrintSnapshot(tracker.ReadSnapshot(), speciesFilter);
+        var snapshot = tracker.ReadSnapshot();
+        PrintSnapshot(snapshot, speciesFilter);
+
+        if (populationPath is not null)
+        {
+            try
+            {
+                var population = PopulationFileReader.Read(populationPath);
+                PrintPopulationCorrelation(snapshot, population, speciesFilter, populationTop);
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+            {
+                Console.Error.WriteLine($"Population diagnostic failed: {ex.Message}");
+                return 10;
+            }
+        }
+
         return 0;
     }
 
@@ -145,7 +195,7 @@ try
             Console.Clear();
         }
 
-        Console.WriteLine("COTW Live Tracker v0.2 - LIVE");
+        Console.WriteLine("COTW Live Tracker v0.3 - LIVE");
         Console.WriteLine($"Profile: {profile.Name}");
         PrintSnapshot(tracker.ReadSnapshot(), speciesFilter);
 
@@ -203,6 +253,64 @@ static void PrintSnapshot(LiveSnapshot snapshot, string? speciesFilter)
             $"{animal.DistanceMeters,4:F0}m  {animal.Health,5:F1}/{animal.MaxHealth,-5:F1}  " +
             $"{Truncate(animal.Species, 22),-22}  " +
             $"{animal.Position.X,8:F1} {animal.Position.Y,8:F1} {animal.Position.Z,8:F1}");
+    }
+}
+
+static void PrintPopulationCorrelation(
+    LiveSnapshot snapshot,
+    PopulationReadResult population,
+    string? speciesFilter,
+    int topMatches)
+{
+    Console.WriteLine();
+    Console.WriteLine("POPULATION CORRELATION DIAGNOSTIC");
+    Console.WriteLine($"Population file: {population.FilePath}");
+    Console.WriteLine($"Population file size: {population.FileSizeBytes:N0} bytes");
+    Console.WriteLine($"Decompressed ADF payload: {population.AdfPayloadSizeBytes:N0} bytes");
+    Console.WriteLine($"32-byte animal-record candidates: {population.Records.Count:N0}");
+    Console.WriteLine("MAPΔ compares a population record's stored MapPosition to live X/Z.");
+    Console.WriteLine("Small, repeatable MAPΔ values indicate that the record layout/position correlation is useful.");
+
+    IEnumerable<AnimalSnapshot> animals = snapshot.Animals;
+    if (!string.IsNullOrWhiteSpace(speciesFilter))
+    {
+        animals = animals.Where(animal =>
+            animal.Species.Contains(speciesFilter, StringComparison.OrdinalIgnoreCase));
+    }
+
+    foreach (var animal in animals.OrderBy(animal => animal.DistanceMeters))
+    {
+        Console.WriteLine();
+        Console.WriteLine(
+            $"LIVE {animal.Species} @ X/Z {animal.Position.X:F1}/{animal.Position.Z:F1} " +
+            $"({animal.DistanceMeters:F0}m from camera)");
+
+        var matches = population.Records
+            .Select(record => new
+            {
+                Record = record,
+                Distance = record.HorizontalDistanceTo(animal.Position)
+            })
+            .OrderBy(item => item.Distance)
+            .Take(topMatches)
+            .ToArray();
+
+        if (matches.Length == 0)
+        {
+            Console.WriteLine("  No candidate population records.");
+            continue;
+        }
+
+        foreach (var match in matches)
+        {
+            var record = match.Record;
+            Console.WriteLine(
+                $"  MAPΔ {match.Distance,7:F1}m  {record.Gender,-6}  " +
+                $"wt {record.Weight,8:F2}  score {record.Score,8:F2}  " +
+                $"GO {(record.IsGreatOne ? "yes" : "no "),-3}  " +
+                $"seed {record.VisualVariationSeed,10}  id {record.Id,10}  " +
+                $"map {record.MapX,8:F1}/{record.MapY,8:F1}  @0x{record.Offset:X}");
+        }
     }
 }
 
