@@ -13,25 +13,25 @@ internal static class TrackerSelfTest
         try
         {
             var memory = new SparseMemoryReader();
-            var moduleBase = (nint)0x0000000140000000;
-            var root = (nint)0x0000010000001000;
-            var manager = (nint)0x0000010000002000;
-            var vector = (nint)0x0000010000003000;
-            var animal = (nint)0x0000010000004000;
-            var speciesDefinition = (nint)0x0000010000005000;
-            var ragdollPath = (nint)0x0000010000006000;
+            var moduleBase = Ptr(0x0000000140000000L);
+            var root = Ptr(0x0000010000001000L);
+            var manager = Ptr(0x0000010000002000L);
+            var vector = Ptr(0x0000010000003000L);
+            var animal = Ptr(0x0000010000004000L);
+            var speciesDefinition = Ptr(0x0000010000005000L);
+            var ragdollPath = Ptr(0x0000010000006000L);
 
             var offsets = new CotwOffsets(
-                ViewProjection: (nint)0x100,
-                CameraPosition: (nint)0x200,
-                AnimalManager: (nint)0x300,
-                AnimalManagerDereference: (nint)0x8,
-                AnimalVector: (nint)0x2C8,
-                AnimalSpeciesDefinition: (nint)0x28,
-                AnimalPosition: (nint)0x148,
-                AnimalHealthMax: (nint)0x178,
-                AnimalHealthCurrent: (nint)0x17C,
-                SpeciesRagdollPath: (nint)0xC0,
+                ViewProjection: Ptr(0x100),
+                CameraPosition: Ptr(0x200),
+                AnimalManager: Ptr(0x300),
+                AnimalManagerDereference: Ptr(0x8),
+                AnimalVector: Ptr(0x2C8),
+                AnimalSpeciesDefinition: Ptr(0x28),
+                AnimalPosition: Ptr(0x148),
+                AnimalHealthMax: Ptr(0x178),
+                AnimalHealthCurrent: Ptr(0x17C),
+                SpeciesRagdollPath: Ptr(0xC0),
                 MaxAnimals: 512,
                 MaxDistanceMeters: 1000f);
 
@@ -95,6 +95,8 @@ internal static class TrackerSelfTest
             return 1;
         }
     }
+
+    private static nint Ptr(long value) => (nint)value;
 
     private static byte[] PointerBytes(nint value)
     {
