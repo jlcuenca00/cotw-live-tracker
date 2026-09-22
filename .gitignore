@@ -1,0 +1,23 @@
+# Build output
+bin/
+obj/
+artifacts/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local tracker data
+offsets/local/
+logs/
+*.dmp
+
+# Publish output
+publish/
