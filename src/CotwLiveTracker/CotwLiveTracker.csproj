@@ -11,4 +11,10 @@
     <RootNamespace>CotwLiveTracker</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="..\..\offsets\*.json"
+          Link="offsets\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

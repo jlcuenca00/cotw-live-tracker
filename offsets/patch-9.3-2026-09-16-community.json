@@ -1,0 +1,22 @@
+{
+  "name": "Patch 9.3 community offsets - 2026-09-16",
+  "gameBuild": "theHunterCotW_F.exe build observed 2026-09-16",
+  "gamePatch": "9.3",
+  "executableSha256": null,
+  "source": "https://gist.github.com/Cvar1984/b8425fd7e1df271509db5af8273a013f",
+  "communityDerived": true,
+  "maxAnimals": 512,
+  "maxDistanceMeters": 1000,
+  "offsets": {
+    "viewProjection": "0x27E7404",
+    "cameraPosition": "0x27E72F4",
+    "animalManager": "0x269C478",
+    "animalManagerDereference": "0x8",
+    "animalVector": "0x2C8",
+    "animalSpeciesDefinition": "0x28",
+    "animalPosition": "0x148",
+    "animalHealthMax": "0x178",
+    "animalHealthCurrent": "0x17C",
+    "speciesRagdollPath": "0xC0"
+  }
+}

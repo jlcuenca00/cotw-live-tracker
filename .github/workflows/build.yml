@@ -27,3 +27,6 @@ jobs:
 
       - name: Build
         run: dotnet build src/CotwLiveTracker/CotwLiveTracker.csproj --configuration Release --no-restore
+
+      - name: Self-test
+        run: dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj --configuration Release --no-build -- --selftest
