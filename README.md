@@ -8,7 +8,7 @@ Build a live tracker that can display currently spawned animals, their positions
 
 ## Current status
 
-### v0.2 live animal probe
+### v0.3 live + population correlation diagnostic
 
 The tracker can now:
 
@@ -22,9 +22,13 @@ The tracker can now:
 - decode species from the game's animal/bird ragdoll paths;
 - read animal XYZ and current/max HP;
 - calculate distance from the camera;
-- continuously refresh in console watch mode.
+- continuously refresh in console watch mode;
+- locate a reserve population save file without touching backup slot copies;
+- decompress the read-only COTW population payload;
+- recognize candidate 32-byte animal records containing gender, weight, score, Great One/scripted flags, visual-variation seed, ID and stored map position;
+- compare those stored population map positions against live animal X/Z as a research diagnostic.
 
-Trophy score, difficulty/level, fur and the graphical radar are **not implemented yet**.
+The population correlation is intentionally diagnostic in v0.3. Species-to-population grouping, trophy labels, fur-name decoding and the graphical radar are **not implemented yet**.
 
 ## Build
 
@@ -72,20 +76,36 @@ Optional refresh interval (100-10000 ms):
 dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --watch --interval-ms 500
 ```
 
+## Population correlation diagnostic
+
+For Layton Lake (population index 1), let the tracker find the active save automatically:
+
+```powershell
+dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --population-reserve 1
+```
+
+Or provide a population file explicitly:
+
+```powershell
+dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --population-file "C:\\path\\to\\animal_population_1"
+```
+
+The diagnostic prints the nearest candidate population records for each currently loaded animal. `MAPΔ` is the horizontal distance between the record's stored `MapPosition` and the live animal's X/Z. Small, repeatable values would validate a practical bridge between full-reserve population metadata and live runtime entities.
+
+Use `--population-top 1` through `10` to change how many candidates are shown per live animal. Population correlation is currently one-shot and cannot be combined with `--watch`.
+
 ## Offset profile status
 
-The bundled Patch 9.3 profile comes from a public community reverse-engineering source dated September 16, 2026. It is intentionally marked **community-derived** and currently has no executable SHA-256.
+The bundled Patch 9.3 profile originated from a public community reverse-engineering source dated September 16, 2026 and has now been validated against a real Steam Patch 9.3 session.
 
-The tracker does not blindly trust it. Before listing animals it checks:
+The verified executable SHA-256 is pinned in the profile. The tracker first rejects a hash mismatch, then performs runtime sanity checks:
 
 1. camera coordinates are finite;
 2. the animal-manager pointer chain is plausible;
 3. the spawned-animal vector has a valid shape and safe count;
 4. loaded animal samples decode to plausible positions and species.
 
-If those checks fail, the tracker stops.
-
-After the profile is confirmed on a local executable, we can pin its SHA-256 for a stronger build check.
+If the executable changes or those checks fail, the tracker stops instead of trusting stale offsets.
 
 ## Development principles
 
@@ -96,11 +116,12 @@ After the profile is confirmed on a local executable, we can pin its SHA-256 for
 
 ## Roadmap
 
-1. Verify Patch 9.3 offsets on a real local game process.
-2. Add difficulty/level, trophy estimate and fur after their fields are independently verified.
-3. Add a cached high-frequency entity reader.
-4. Add a 2D radar/map UI.
-5. Add HM-focused filtering and kill/respawn history.
+1. Validate population-record correlation against the live Patch 9.3 session.
+2. Build a structured full-reserve population reader with species/group identity.
+3. Derive difficulty/level and trophy labels from verified population weight/score data, then decode fur from the visual seed.
+4. Match loaded runtime entities to their full population records.
+5. Add a cached high-frequency entity reader and 2D radar/map UI.
+6. Add HM-focused filtering and kill/respawn history.
 
 ## Source attribution
 
@@ -109,3 +130,10 @@ The initial Patch 9.3 memory layout was transcribed from:
 https://gist.github.com/Cvar1984/b8425fd7e1df271509db5af8273a013f
 
 That source states its offsets are for the September 16, 2026 `theHunterCotW_F.exe` build and may move after a game patch.
+
+
+Population-record field semantics and the active-save decompression layout were independently cross-checked against the MIT-licensed Animal Population Changer - Pure Winter Edition:
+
+https://github.com/Pure-Winter-hue/apc-pw
+
+The tracker remains read-only and does not use APC's population modification or live injection features.
