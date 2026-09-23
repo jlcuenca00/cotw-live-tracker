@@ -341,7 +341,8 @@ static void PrintPopulationSummary(
         {
             Console.WriteLine(
                 $"  G{animal.GroupIndex,-3} #{animal.AnimalIndex,-3} " +
-                $"{animal.Gender,-7} wt {animal.Weight,8:F2}  score {animal.Score,8:F2}  " +
+                $"{animal.Gender,-7} {animal.DifficultyLabel,-13} " +
+                $"wt {animal.Weight,8:F2}  score {animal.Score,8:F2}  " +
                 $"GO {(animal.IsGreatOne ? "yes" : "no "),-3}  " +
                 $"seed {animal.VisualVariationSeed,10}  id {animal.Id,10}");
         }
