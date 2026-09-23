@@ -25,6 +25,9 @@ internal sealed record CotwOffsets(
     nint AnimalPosition,
     nint AnimalHealthMax,
     nint AnimalHealthCurrent,
+    nint AnimalWeight,
+    nint AnimalScore,
+    nint AnimalVisualVariationSeed,
     nint SpeciesRagdollPath,
     int MaxAnimals,
     float MaxDistanceMeters)
@@ -43,6 +46,9 @@ internal sealed record CotwOffsets(
             ParseRequired(profile, "animalPosition"),
             ParseRequired(profile, "animalHealthMax"),
             ParseRequired(profile, "animalHealthCurrent"),
+            ParseRequired(profile, "animalWeight"),
+            ParseRequired(profile, "animalScore"),
+            ParseRequired(profile, "animalVisualVariationSeed"),
             ParseRequired(profile, "speciesRagdollPath"),
             profile.MaxAnimals,
             profile.MaxDistanceMeters);
