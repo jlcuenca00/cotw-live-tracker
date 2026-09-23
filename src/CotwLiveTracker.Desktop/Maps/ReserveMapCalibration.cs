@@ -2,7 +2,7 @@ using System.Windows;
 
 namespace CotwLiveTracker.Desktop.Maps;
 
-internal sealed record ReserveMapCalibration(
+public sealed record ReserveMapCalibration(
     int ReserveIndex,
     string ReserveName,
     double UX,
