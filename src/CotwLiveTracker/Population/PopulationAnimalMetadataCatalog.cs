@@ -147,9 +147,10 @@ internal static class PopulationAnimalMetadataCatalog
 
                 // Use the active fur table for rarity where possible. Some seed tables
                 // differ from display probabilities.
-                var furProbability = actualWeight > 0f
-                    ? actualWeight / genderMetadata.FurTotalProbability
-                    : entry.Weight / total;
+                var furProbability =
+                    actualWeight > 0f && genderMetadata.FurTotalProbability > 0f
+                        ? actualWeight / genderMetadata.FurTotalProbability
+                        : entry.Weight / total;
 
                 var name = Catalog.Value.FurNames.TryGetValue(entry.Key, out var furName)
                     ? furName
