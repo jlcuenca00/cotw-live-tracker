@@ -149,7 +149,9 @@ internal sealed class DesktopTrackerSession : IDisposable
             VisualVariationSeed: live.VisualVariationSeed,
             GroupIndex: record?.GroupIndex,
             AnimalIndex: record?.AnimalIndex,
-            Position: live.Position,
+            X: live.Position.X,
+            Y: live.Position.Y,
+            Z: live.Position.Z,
             RelativeX: live.Position.X - camera.X,
             RelativeZ: live.Position.Z - camera.Z,
             Address: live.Address);
