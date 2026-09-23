@@ -164,6 +164,7 @@ internal static class AvtxMapTileDecoder
         }
 
         var sourceOffset = 0;
+        Span<Rgba> colors = stackalloc Rgba[4];
         for (var blockY = 0; blockY < blocksY; blockY++)
         {
             for (var blockX = 0; blockX < blocksX; blockX++)
@@ -176,7 +177,6 @@ internal static class AvtxMapTileDecoder
                     source.Slice(sourceOffset + 4, 4));
                 sourceOffset += 8;
 
-                Span<Rgba> colors = stackalloc Rgba[4];
                 BuildBc1Palette(
                     color0,
                     color1,
@@ -210,6 +210,8 @@ internal static class AvtxMapTileDecoder
         }
 
         var sourceOffset = 0;
+        Span<Rgba> colors = stackalloc Rgba[4];
+        Span<byte> alphas = stackalloc byte[8];
         for (var blockY = 0; blockY < blocksY; blockY++)
         {
             for (var blockX = 0; blockX < blocksX; blockX++)
@@ -231,14 +233,12 @@ internal static class AvtxMapTileDecoder
                     source.Slice(sourceOffset + 12, 4));
                 sourceOffset += 16;
 
-                Span<Rgba> colors = stackalloc Rgba[4];
                 BuildBc1Palette(
                     color0,
                     color1,
                     allowTransparentMode: false,
                     colors);
 
-                Span<byte> alphas = stackalloc byte[8];
                 BuildBc3AlphaPalette(alpha0, alpha1, alphas);
 
                 for (var pixelIndex = 0; pixelIndex < 16; pixelIndex++)
