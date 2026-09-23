@@ -10,7 +10,6 @@ public partial class MainWindow : Window
 {
     private readonly DesktopTrackerSession _session = new();
     private readonly DispatcherTimer _refreshTimer;
-    private DesktopSnapshot? _lastSnapshot;
 
     public MainWindow()
     {
@@ -98,7 +97,6 @@ public partial class MainWindow : Window
         try
         {
             var snapshot = _session.ReadSnapshot();
-            _lastSnapshot = snapshot;
             var animals = snapshot.Animals;
 
             LiveAnimalsGrid.ItemsSource = animals;
