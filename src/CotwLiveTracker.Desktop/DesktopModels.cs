@@ -54,7 +54,9 @@ internal sealed record PopulationAnimalView(PopulationAnimalRecord Record)
     public string Group => $"G{Record.GroupIndex}";
     public int Slot => Record.AnimalIndex;
     public string Gender => Record.Gender;
-    public string Difficulty => Record.DifficultyLabel;
+    public string Difficulty => Record.IsGreatOne
+        ? Record.DifficultyLabel
+        : $"~{Record.DifficultyLabel}";
     public string Trophy => Record.Trophy;
     public string Fur => Record.FurName;
     public string Rarity => Record.FurRarity;

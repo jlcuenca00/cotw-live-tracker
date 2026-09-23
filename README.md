@@ -30,7 +30,7 @@ The tracker can now:
 - associate each population slot with the reserve's species order;
 - decode each animal's gender, weight, saved score, Great One/scripted flags, visual-variation seed, ID and stored map position;
 - summarize full-reserve totals and herd/group membership by species;
-- derive species-specific difficulty labels from saved weight;
+- derive species-specific difficulty estimates from saved weight (shown with `~` because the game's native level can differ);
 - classify saved trophy score as Bronze, Silver, Gold, Diamond or Great One;
 - decode fur type from VisualVariationSeed;
 - show each fur's configured probability and flag normal furs below 1% as Rare;
@@ -109,6 +109,35 @@ v = 0.000000306147534157835 * X
 It was fit against ten Layton outpost correspondences and independently checked against the live camera location near Roonachee. The tiny cross-axis coefficients are retained so the calibration does not assume zero rotation.
 
 DECA and an independently implemented COTW map viewer were used during reverse-engineering to verify the map tile geometry and stitch order. They are research references only; the finished tracker does not invoke or require DECA.
+
+### Difficulty accuracy and native-level probe
+
+COTW's displayed animal difficulty is **not treated as exactly recoverable from
+weight alone**. The population metadata can estimate a level from species-specific
+weight bands, but real in-game difficulty can differ from that estimate.
+
+To make this explicit:
+
+- non-Great-One population/live difficulty labels are shown with a `~` prefix,
+  for example `~3-Very Easy`;
+- Great One `10-Fabled` remains explicit from the saved Great One flag;
+- the Live Radar selected-animal panel includes **Probe level**.
+
+**Probe level** performs a narrowly scoped, read-only scan of the selected loaded
+animal object and its immediate child structures for integer-like values 1-10.
+It copies a diagnostic report to the clipboard so a known in-game level can be
+compared against candidate runtime fields. The probe does not write to game
+memory and is not yet used as the displayed level until a stable field is verified
+across multiple animals/species.
+
+### Layton calibration refinement
+
+The Layton world-to-map transform is fit against all 18 published Layton outpost
+world-coordinate / raw-map-position correspondences. The fitted cross-axis terms
+are retained and the residual error is small. The in-game coordinate shown at the
+bottom-right of the map is a selected/cursor map point when a non-zero distance is
+shown underneath it; it should not be treated as the player's coordinate for
+calibration validation.
 
 ## Build
 
