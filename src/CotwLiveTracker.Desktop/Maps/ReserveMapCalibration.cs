@@ -25,22 +25,62 @@ public sealed record ReserveMapCalibration(
                point.Y >= -margin &&
                point.Y <= 1d + margin;
     }
+
+    public static ReserveMapCalibration FromWorldBounds(
+        int reserveIndex,
+        string reserveName,
+        double xA,
+        double xB,
+        double zA,
+        double zB)
+    {
+        var xMin = Math.Min(xA, xB);
+        var xMax = Math.Max(xA, xB);
+        var zMin = Math.Min(zA, zB);
+        var zMax = Math.Max(zA, zB);
+
+        var xSpan = xMax - xMin;
+        var zSpan = zMax - zMin;
+        if (xSpan <= 0d || zSpan <= 0d)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(xA),
+                "Reserve world bounds must have positive X and Z spans.");
+        }
+
+        // The raw COTW/DECA full map image is the reserve's complete map
+        // extent. World positions therefore normalize directly into that
+        // full image rather than into a smaller hand-fit landmark region.
+        return new ReserveMapCalibration(
+            reserveIndex,
+            reserveName,
+            UX: 1d / xSpan,
+            UZ: 0d,
+            U0: -xMin / xSpan,
+            VX: 0d,
+            VZ: 1d / zSpan,
+            V0: -zMin / zSpan);
+    }
 }
 
 internal static class ReserveMapCalibrationCatalog
 {
-    // Layton calibration solved against all 18 published outpost world
-    // coordinates and their raw map_reserve_1 normalized positions.
-    // RMSE is ~0.00013 normalized map units; cross-axis terms are retained.
-    public static ReserveMapCalibration Layton { get; } = new(
-        ReserveIndex: 1,
-        ReserveName: "Layton Lake District",
-        UX: 0.000114853521,
-        UZ: -0.00000000751486842,
-        U0: -0.589698550,
-        VX: -0.0000000153992234,
-        VZ: 0.000114831546,
-        V0: -0.412461871);
+    // Verified against the same full DECA/COTW reserve-1 map geometry used
+    // by need-zone mapping tools: Layton occupies world X 0..16400 m and
+    // world Z 0..16400 m across the entire stitched map texture.
+    //
+    // The previous outpost-derived fit compressed the world to ~8.7 km and
+    // therefore pushed live runtime positions toward/outside the western map
+    // boundary. Runtime X/Z are already in the map's meter coordinate system;
+    // they should be normalized against the full 16.4 km reserve extent.
+    public static ReserveMapCalibration Layton { get; } =
+        ReserveMapCalibration.FromWorldBounds(
+            reserveIndex: 1,
+            reserveName: "Layton Lake District",
+            xA: 0d,
+            xB: 16400d,
+            zA: 0d,
+            zB: 16400d);
 
     public static ReserveMapCalibration? Get(int reserveIndex) =>
         reserveIndex == Layton.ReserveIndex

@@ -94,21 +94,27 @@ The manual **Load image** button remains as a fallback for a compatible full res
 
 ### Layton calibration
 
-The Layton transform maps game world `(X, Z)` directly to normalized image `(u, v)`:
+The built-in zoom-3 COTW/DECA tile sheet is the **full reserve map extent**.
+Layton's live world coordinate bounds are 0..16,400 metres on both X and Z,
+so the raw map transform is:
 
 ```text
-u = 0.000114888268968409 * X
-  - 0.0000000459197071221501 * Z
-  - 0.589623002016760
-
-v = 0.000000306147534157835 * X
-  + 0.000114541294189928 * Z
-  - 0.412792441489212
+u = X / 16400
+v = Z / 16400
 ```
 
-It was fit against ten Layton outpost correspondences and independently checked against the live camera location near Roonachee. The tiny cross-axis coefficients are retained so the calibration does not assume zero rotation.
+This replaces the earlier landmark-fit transform, which accidentally compressed
+the map to roughly 8.7 km and could place correct runtime coordinates near or
+outside the wrong reserve boundary.
 
-DECA and an independently implemented COTW map viewer were used during reverse-engineering to verify the map tile geometry and stitch order. They are research references only; the finished tracker does not invoke or require DECA.
+The calibration type now supports direct world-bounds normalization so additional
+reserves can use their actual COTW coordinate extents instead of hand-fit
+landmark coefficients.
+
+DECA and independently implemented COTW map tools were used during
+reverse-engineering to verify the map tile geometry and world-bound approach.
+They are research references only; the finished tracker does not invoke or
+require DECA.
 
 ### Difficulty accuracy and native-level probe
 
@@ -129,15 +135,6 @@ It copies a diagnostic report to the clipboard so a known in-game level can be
 compared against candidate runtime fields. The probe does not write to game
 memory and is not yet used as the displayed level until a stable field is verified
 across multiple animals/species.
-
-### Layton calibration refinement
-
-The Layton world-to-map transform is fit against all 18 published Layton outpost
-world-coordinate / raw-map-position correspondences. The fitted cross-axis terms
-are retained and the residual error is small. The in-game coordinate shown at the
-bottom-right of the map is a selected/cursor map point when a non-zero distance is
-shown underneath it; it should not be treated as the player's coordinate for
-calibration validation.
 
 ## Build
 
