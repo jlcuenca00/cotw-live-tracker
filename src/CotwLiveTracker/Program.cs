@@ -73,7 +73,7 @@ if (watch && populationPath is not null)
     return 10;
 }
 
-Console.WriteLine("COTW Live Tracker v0.4");
+Console.WriteLine("COTW Live Tracker v0.5");
 Console.WriteLine($"Looking for process: {processName}.exe");
 
 using var process = GameProcessLocator.Find(processName);
@@ -214,7 +214,7 @@ try
             Console.Clear();
         }
 
-        Console.WriteLine("COTW Live Tracker v0.4 - LIVE");
+        Console.WriteLine("COTW Live Tracker v0.5 - LIVE");
         Console.WriteLine($"Profile: {profile.Name}");
         PrintSnapshot(tracker.ReadSnapshot(), speciesFilter);
 
