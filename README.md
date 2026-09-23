@@ -8,7 +8,7 @@ Build a live tracker that can display currently spawned animals, their positions
 
 ## Current status
 
-### v0.8 identity-bridge diagnostics
+### v0.9 promoted live identity fields
 
 The tracker can now:
 
@@ -36,7 +36,9 @@ The tracker can now:
 - show each fur's configured probability and flag normal furs below 1% as Rare;
 - filter full-reserve records by trophy, rare fur, Great One, difficulty, fur and sex;
 - print every matching record with `--population-all`;
-- run a targeted read-only identity probe against loaded animal objects and their immediate pointers.
+- run a targeted read-only identity probe against loaded animal objects and their immediate pointers;
+- read verified live weight, score and visual seed directly from Patch 9.3 animal entities;
+- join loaded entities to exact population records and enrich live rows with difficulty, trophy and fur.
 
 The CLI deliberately does not invent an "Uncommon" tier because rarity labels in game data are inconsistent across species. The graphical radar is **not implemented yet**.
 
@@ -135,7 +137,7 @@ dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --
 
 A bridge result is marked `RESOLVED` only when the probe finds a full stable-record signature, or at least two independent exact clues that agree on one population record. A single seed or weight/score clue is reported only as a candidate.
 
-This is intentionally experimental until real Patch 9.3 sessions establish which animal-object pointer path, if any, consistently reaches the runtime population record.
+Real Patch 9.3 validation resolved 4/4 loaded Whitetails using exact weight+score at entity+0x19C and visual seed at entity+0x1B0. Those fields are now promoted into the Patch 9.3 offset profile. The bridge probe remains available as a diagnostic for future patches and additional validation.
 
 ## Offset profile status
 
@@ -159,7 +161,7 @@ If the executable changes or those checks fail, the tracker stops instead of tru
 
 ## Roadmap
 
-1. Validate the v0.8 identity bridge probe against real loaded animals and promote any stable pointer path into the versioned offset profile.
+1. Validate promoted live identity fields across more species/reserves.
 2. Add the scanner/filter model to the desktop UI.
 3. Add a cached high-frequency entity reader and 2D radar/map UI.
 4. Add HM-focused filtering and kill/respawn history.
