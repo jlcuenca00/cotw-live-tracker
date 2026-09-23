@@ -32,8 +32,16 @@
         </Style>
 
         <Style TargetType="ComboBox">
-            <Setter Property="Foreground" Value="#111827"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Background" Value="#17202B"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
             <Setter Property="Padding" Value="8,5"/>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#111827"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Padding" Value="8,6"/>
         </Style>
 
         <Style TargetType="TextBox">
@@ -70,10 +78,22 @@
         </Style>
 
         <Style TargetType="TabItem">
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
-            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="Background" Value="#11161D"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Foreground" Value="#0A0D12"/>
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Background" Value="#1D2733"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </Application.Resources>
 </Application>
