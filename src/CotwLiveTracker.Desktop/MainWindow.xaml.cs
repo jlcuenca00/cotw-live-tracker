@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _refreshTimer;
     private IReadOnlyList<LiveAnimalView> _latestLiveAnimals =
         Array.Empty<LiveAnimalView>();
+    private bool _centerMapOnNextSnapshot;
 
     public MainWindow()
     {
@@ -140,6 +141,13 @@ public partial class MainWindow : Window
             Radar.MaxRangeMeters = RadarRangeSlider.Value;
             Radar.CameraX = snapshot.CameraPosition.X;
             Radar.CameraZ = snapshot.CameraPosition.Z;
+
+            if (_centerMapOnNextSnapshot &&
+                Radar.IsMapMode)
+            {
+                Radar.CenterOnPlayer();
+                _centerMapOnNextSnapshot = false;
+            }
 
             LoadedCountText.Text = animals.Count.ToString("N0");
             ResolvedCountText.Text = animals.Count(animal => animal.GroupIndex is not null).ToString("N0");
@@ -585,6 +593,7 @@ public partial class MainWindow : Window
                 dialog.FileName);
             Radar.MapCalibration = calibration;
             Radar.MapImage = ReserveMapImageStore.Load(stored);
+            _centerMapOnNextSnapshot = true;
             MapModeStatusText.Text =
                 $"{reserve.Name} · calibrated actual-map mode";
             LoadMapImageButton.Content = "Replace map";
@@ -630,6 +639,7 @@ public partial class MainWindow : Window
         try
         {
             Radar.MapImage = ReserveMapImageStore.Load(mapPath);
+            _centerMapOnNextSnapshot = true;
             MapModeStatusText.Text =
                 $"{calibration.ReserveName} · calibrated actual-map mode";
             LoadMapImageButton.Content = "Replace image";
