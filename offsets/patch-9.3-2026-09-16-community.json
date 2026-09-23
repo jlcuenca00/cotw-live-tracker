@@ -17,6 +17,9 @@
     "animalPosition": "0x148",
     "animalHealthMax": "0x178",
     "animalHealthCurrent": "0x17C",
-    "speciesRagdollPath": "0xC0"
+    "speciesRagdollPath": "0xC0",
+    "animalWeight": "0x19C",
+    "animalScore": "0x1A0",
+    "animalVisualVariationSeed": "0x1B0"
   }
 }
