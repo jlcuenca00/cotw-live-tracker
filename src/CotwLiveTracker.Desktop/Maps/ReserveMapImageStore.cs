@@ -60,6 +60,10 @@ internal static class ReserveMapImageStore
             FileShare.Read);
         encoder.Save(output);
 
+        File.WriteAllText(
+            SourcePath(map.ReserveIndex),
+            map.Source);
+
         return destination;
     }
 
@@ -81,7 +85,18 @@ internal static class ReserveMapImageStore
             MapsDirectory,
             $"reserve-{reserveIndex}{extension}");
         File.Copy(sourcePath, destination, overwrite: true);
+        File.WriteAllText(
+            SourcePath(reserveIndex),
+            "manual-image");
         return destination;
+    }
+
+    public static string? ReadSource(int reserveIndex)
+    {
+        var sourcePath = SourcePath(reserveIndex);
+        return File.Exists(sourcePath)
+            ? File.ReadAllText(sourcePath).Trim()
+            : null;
     }
 
     private static void DeleteExisting(int reserveIndex)
@@ -96,7 +111,18 @@ internal static class ReserveMapImageStore
                 File.Delete(oldPath);
             }
         }
+
+        var sourcePath = SourcePath(reserveIndex);
+        if (File.Exists(sourcePath))
+        {
+            File.Delete(sourcePath);
+        }
     }
+
+    private static string SourcePath(int reserveIndex) =>
+        Path.Combine(
+            MapsDirectory,
+            $"reserve-{reserveIndex}.source.txt");
 
     public static BitmapImage Load(string path)
     {
