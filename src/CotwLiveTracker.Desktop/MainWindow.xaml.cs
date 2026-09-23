@@ -17,6 +17,8 @@ public partial class MainWindow : Window
 
     private readonly DesktopTrackerSession _session = new();
     private readonly DispatcherTimer _refreshTimer;
+    private IReadOnlyList<LiveAnimalView> _latestLiveAnimals =
+        Array.Empty<LiveAnimalView>();
 
     public MainWindow()
     {
@@ -47,7 +49,26 @@ public partial class MainWindow : Window
         PopulationSexFilter.ItemsSource = new[] { "All", "Male", "Female" };
         PopulationSexFilter.SelectedIndex = 0;
 
+        LiveTrophyFilter.ItemsSource = new[]
+        {
+            "All", "None", "Bronze", "Silver", "Gold", "Diamond", "Great One"
+        };
+        LiveTrophyFilter.SelectedIndex = 0;
+
+        LiveDifficultyFilter.ItemsSource =
+            new[] { "All" }
+                .Concat(Enumerable.Range(1, 10).Select(value => value.ToString()))
+                .ToArray();
+        LiveDifficultyFilter.SelectedIndex = 0;
+
+        LiveSexFilter.ItemsSource = new[] { "All", "Male", "Female" };
+        LiveSexFilter.SelectedIndex = 0;
+
         Radar.AnimalSelected = SelectLiveAnimal;
+        Radar.MapZoomChanged = zoom =>
+        {
+            MapZoomText.Text = $"{zoom * 100d:F0}%";
+        };
 
         _refreshTimer = new DispatcherTimer
         {
@@ -111,11 +132,11 @@ public partial class MainWindow : Window
         {
             var snapshot = _session.ReadSnapshot();
             var animals = snapshot.Animals;
+            _latestLiveAnimals = animals;
 
-            LiveAnimalsGrid.ItemsSource = animals;
             DashboardAnimalsGrid.ItemsSource = animals.Take(10).ToArray();
+            ApplyLiveFilters(animals);
 
-            Radar.Animals = animals;
             Radar.MaxRangeMeters = RadarRangeSlider.Value;
             Radar.CameraX = snapshot.CameraPosition.X;
             Radar.CameraZ = snapshot.CameraPosition.Z;
@@ -167,6 +188,134 @@ public partial class MainWindow : Window
             string.IsNullOrWhiteSpace(_session.ExecutableSha256)
                 ? "—"
                 : _session.ExecutableSha256;
+    }
+
+    private void ApplyLiveFilters_Click(object sender, RoutedEventArgs e) =>
+        ApplyLiveFilters(_latestLiveAnimals);
+
+    private void ClearLiveFilters_Click(object sender, RoutedEventArgs e)
+    {
+        LiveSpeciesFilter.Text = "";
+        LiveTrophyFilter.SelectedIndex = 0;
+        LiveDifficultyFilter.SelectedIndex = 0;
+        LiveFurFilter.Text = "";
+        LiveSexFilter.SelectedIndex = 0;
+        LiveRareOnly.IsChecked = false;
+        LiveGreatOneOnly.IsChecked = false;
+        ApplyLiveFilters(_latestLiveAnimals);
+    }
+
+    private void ApplyLiveFilters(
+        IReadOnlyList<LiveAnimalView> animals)
+    {
+        var species = LiveSpeciesFilter.Text.Trim();
+        var fur = LiveFurFilter.Text.Trim();
+
+        var trophy = LiveTrophyFilter.SelectedItem as string;
+        if (string.Equals(
+                trophy,
+                "All",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            trophy = null;
+        }
+
+        var sex = LiveSexFilter.SelectedItem as string;
+        if (string.Equals(
+                sex,
+                "All",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            sex = null;
+        }
+
+        int? difficulty = null;
+        var difficultyText =
+            LiveDifficultyFilter.SelectedItem as string;
+        if (!string.IsNullOrWhiteSpace(difficultyText) &&
+            !string.Equals(
+                difficultyText,
+                "All",
+                StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(
+                difficultyText,
+                out var parsedDifficulty))
+        {
+            difficulty = parsedDifficulty;
+        }
+
+        var filtered = animals
+            .Where(animal =>
+                string.IsNullOrWhiteSpace(species) ||
+                animal.DisplaySpecies.Contains(
+                    species,
+                    StringComparison.OrdinalIgnoreCase))
+            .Where(animal =>
+                trophy is null ||
+                string.Equals(
+                    animal.Trophy,
+                    trophy,
+                    StringComparison.OrdinalIgnoreCase))
+            .Where(animal =>
+                difficulty is null ||
+                ParseDifficultyLevel(animal.Difficulty) ==
+                difficulty.Value)
+            .Where(animal =>
+                string.IsNullOrWhiteSpace(fur) ||
+                animal.Fur.Contains(
+                    fur,
+                    StringComparison.OrdinalIgnoreCase))
+            .Where(animal =>
+                sex is null ||
+                string.Equals(
+                    animal.Gender,
+                    sex,
+                    StringComparison.OrdinalIgnoreCase))
+            .Where(animal =>
+                LiveRareOnly.IsChecked != true ||
+                animal.IsRare)
+            .Where(animal =>
+                LiveGreatOneOnly.IsChecked != true ||
+                animal.IsGreatOne)
+            .OrderBy(animal => animal.DistanceMeters)
+            .ToArray();
+
+        LiveAnimalsGrid.ItemsSource = filtered;
+        Radar.Animals = filtered;
+        LiveFilterSummaryText.Text =
+            $"{filtered.Length:N0} shown / {animals.Count:N0} loaded";
+
+        if (Radar.SelectedAnimal is { } selected &&
+            !filtered.Any(animal =>
+                animal.Address == selected.Address))
+        {
+            Radar.SelectedAnimal = null;
+            LiveAnimalsGrid.SelectedItem = null;
+            SelectedAnimalTitle.Text =
+                "Click a radar marker or live row";
+            SelectedAnimalDetails.Text =
+                "Distance, identity, score, fur and XYZ will appear here.";
+        }
+    }
+
+    private static int ParseDifficultyLevel(
+        string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return 0;
+        }
+
+        var separator = value.IndexOf('-');
+        var levelText = separator >= 0
+            ? value[..separator]
+            : value;
+
+        return int.TryParse(
+            levelText.Trim(),
+            out var level)
+            ? level
+            : 0;
     }
 
     private void ApplyPopulationFilters_Click(object sender, RoutedEventArgs e) =>
@@ -494,6 +643,26 @@ public partial class MainWindow : Window
         }
     }
 
+
+    private void MapZoomInButton_Click(
+        object sender,
+        RoutedEventArgs e) =>
+        Radar.ZoomIn();
+
+    private void MapZoomOutButton_Click(
+        object sender,
+        RoutedEventArgs e) =>
+        Radar.ZoomOut();
+
+    private void MapFitButton_Click(
+        object sender,
+        RoutedEventArgs e) =>
+        Radar.ResetMapView();
+
+    private void MapCenterPlayerButton_Click(
+        object sender,
+        RoutedEventArgs e) =>
+        Radar.CenterOnPlayer();
 
     private void RadarRangeSlider_ValueChanged(
         object sender,
