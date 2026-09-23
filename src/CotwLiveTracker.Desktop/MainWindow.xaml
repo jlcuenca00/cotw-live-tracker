@@ -187,7 +187,7 @@
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Distance" Binding="{Binding DistanceText}" Width="90"/>
                                         <DataGridTextColumn Header="Species" Binding="{Binding DisplaySpecies}" Width="*"/>
-                                        <DataGridTextColumn Header="Level" Binding="{Binding Difficulty}" Width="120"/>
+                                        <DataGridTextColumn Header="Level ~" Binding="{Binding Difficulty}" Width="120"/>
                                         <DataGridTextColumn Header="Trophy" Binding="{Binding Trophy}" Width="100"/>
                                         <DataGridTextColumn Header="Fur" Binding="{Binding Fur}" Width="140"/>
                                         <DataGridTextColumn Header="Score" Binding="{Binding ScoreText}" Width="90"/>
@@ -472,7 +472,7 @@
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Dist" Binding="{Binding DistanceText}" Width="70"/>
                                             <DataGridTextColumn Header="Species" Binding="{Binding DisplaySpecies}" Width="110"/>
-                                            <DataGridTextColumn Header="Level" Binding="{Binding Difficulty}" Width="95"/>
+                                            <DataGridTextColumn Header="Level ~" Binding="{Binding Difficulty}" Width="95"/>
                                             <DataGridTextColumn Header="Trophy" Binding="{Binding Trophy}" Width="75"/>
                                             <DataGridTextColumn Header="Fur" Binding="{Binding Fur}" Width="95"/>
                                             <DataGridTextColumn Header="Score" Binding="{Binding ScoreText}" Width="65"/>
@@ -492,10 +492,28 @@
                                                FontSize="16"
                                                FontWeight="SemiBold"
                                                Margin="0,0,0,12"/>
-                                    <TextBlock x:Name="SelectedAnimalTitle"
-                                               Text="Click a radar marker or live row"
-                                               FontSize="20"
-                                               FontWeight="Bold"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="SelectedAnimalTitle"
+                                                   Text="Click a radar marker or live row"
+                                                   FontSize="20"
+                                                   FontWeight="Bold"
+                                                   VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1"
+                                                Content="Probe level"
+                                                Padding="10,6"
+                                                Margin="10,0,0,0"
+                                                Click="ProbeDifficultyButton_Click"
+                                                ToolTip="Read-only scan of the selected live animal for native difficulty candidates."/>
+                                    </Grid>
+                                    <TextBlock Text="~ = weight-derived estimate; it can differ from the game's native level."
+                                               Margin="0,7,0,0"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"/>
                                     <TextBlock x:Name="SelectedAnimalDetails"
                                                Text="Distance, identity, score, fur and XYZ will appear here."
                                                Margin="0,8,0,0"
