@@ -156,12 +156,25 @@ internal static class TrackerSelfTest
             record.Score != 248.25f ||
             record.DifficultyLevel != 1 ||
             record.DifficultyLabel != "1-Trivial" ||
+            record.Trophy != "Gold" ||
+            record.FurKey != "brown" ||
+            record.FurName != "Brown" ||
+            record.FurRarity != "Common" ||
+            record.IsRareFur ||
+            MathF.Abs(record.FurProbability - (25_000f / 75_226f)) > 0.000001f ||
             record.VisualVariationSeed != 123456789u ||
             record.Id != 98765u ||
             record.MapX != 6800f ||
             record.MapY != 5200f)
         {
             throw new InvalidOperationException("Structured population record decoded incorrectly.");
+        }
+
+        var seedProbability = PopulationAnimalMetadataCatalog.SeedToProbability(123456789u);
+        if (MathF.Abs(seedProbability - 0.404632568359375f) > 0.000001f)
+        {
+            throw new InvalidOperationException(
+                $"Unexpected visual-seed probability {seedProbability}.");
         }
     }
 
