@@ -138,10 +138,16 @@ internal sealed class DesktopTrackerSession : IDisposable
     {
         var record = ResolvePopulationRecord(live);
 
+        var difficulty = record is null
+            ? "Unknown"
+            : record.IsGreatOne
+                ? record.DifficultyLabel
+                : $"~{record.DifficultyLabel}";
+
         return new LiveAnimalView(
             Species: live.Species,
             Gender: record?.Gender ?? "unknown",
-            Difficulty: record?.DifficultyLabel ?? "Unknown",
+            Difficulty: difficulty,
             Trophy: record?.Trophy ?? "Unknown",
             Fur: record?.FurName ?? "Unknown",
             FurRarity: record?.FurRarity ?? "Unknown",
@@ -161,6 +167,28 @@ internal sealed class DesktopTrackerSession : IDisposable
             RelativeX: live.Position.X - camera.X,
             RelativeZ: live.Position.Z - camera.Z,
             Address: live.Address);
+    }
+
+    public string ProbeDifficulty(
+        LiveAnimalView animal)
+    {
+        ArgumentNullException.ThrowIfNull(animal);
+
+        if (!IsAttached || _memory is null)
+        {
+            throw new InvalidOperationException(
+                "Attach to COTW before probing a live animal.");
+        }
+
+        var result = AnimalDifficultyMemoryProbe.Probe(
+            _memory,
+            animal.Address);
+
+        return result.FormatReport(
+            animal.DisplaySpecies,
+            animal.Weight,
+            animal.Score,
+            animal.Difficulty);
     }
 
     private PopulationAnimalRecord? ResolvePopulationRecord(
