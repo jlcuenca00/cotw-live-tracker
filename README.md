@@ -8,7 +8,7 @@ Build a live tracker that can display currently spawned animals, their positions
 
 ## Current status
 
-### v0.6 structured population classification
+### v0.7 structured population scanner
 
 The tracker can now:
 
@@ -33,7 +33,9 @@ The tracker can now:
 - derive species-specific difficulty labels from saved weight;
 - classify saved trophy score as Bronze, Silver, Gold, Diamond or Great One;
 - decode fur type from VisualVariationSeed;
-- show each fur's configured probability and flag normal furs below 1% as Rare.
+- show each fur's configured probability and flag normal furs below 1% as Rare;
+- filter full-reserve records by trophy, rare fur, Great One, difficulty, fur and sex;
+- print every matching record with `--population-all`.
 
 The CLI deliberately does not invent an "Uncommon" tier because rarity labels in game data are inconsistent across species. The graphical radar is **not implemented yet**.
 
@@ -99,7 +101,22 @@ dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --
 
 The structured reader prints reserve-wide species totals, group counts, male/female counts, Great One/Diamond/rare-fur counts, maximum saved weight/score, and the top population records for each species. Detailed rows include difficulty, trophy medal, decoded fur and fur probability.
 
-Use `--population-top 1` through `20` to change how many top records are shown per species. Use `--species "whitetail"` to narrow both the live list and population output.
+Use `--population-top 1` through `20` to change how many top matching records are shown per species. Use `--species "whitetail"` to narrow both the live list and population output.
+
+Population filters:
+
+```powershell
+# Every rare Whitetail on Layton
+dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --population-reserve 1 --species whitetail --rare --population-all
+
+# Every Diamond Coyote
+dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --population-reserve 1 --species coyote --trophy diamond --population-all
+
+# Male Legendary animals with Albino fur
+dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --population-reserve 1 --difficulty 9 --fur albino --sex male --population-all
+```
+
+Supported filters are `--trophy none|bronze|silver|gold|diamond|great-one`, `--rare`, `--great-one`, `--difficulty 1..10`, `--fur <name>`, `--sex male|female`, and `--population-all`. Filters can be combined.
 
 Population reading is currently one-shot and cannot be combined with `--watch`.
 
@@ -125,11 +142,10 @@ If the executable changes or those checks fail, the tracker stops instead of tru
 
 ## Roadmap
 
-1. Validate medal and fur decoding against the real Layton population.
-2. Research a reliable identity bridge between loaded runtime entities and their population records.
-3. Add filters for Diamond/Great One/rare fur/difficulty in the desktop data model.
-4. Add a cached high-frequency entity reader and 2D radar/map UI.
-5. Add HM-focused filtering and kill/respawn history.
+1. Research a reliable identity bridge between loaded runtime entities and their population records.
+2. Add the scanner/filter model to the desktop UI.
+3. Add a cached high-frequency entity reader and 2D radar/map UI.
+4. Add HM-focused filtering and kill/respawn history.
 
 ## Source attribution
 
