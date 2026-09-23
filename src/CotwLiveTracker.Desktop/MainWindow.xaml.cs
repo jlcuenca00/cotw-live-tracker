@@ -642,10 +642,16 @@ public partial class MainWindow : Window
 
         try
         {
-            var applyCalibrationCrop = string.Equals(
-                mapSource,
-                "zoom3-stitched",
-                StringComparison.OrdinalIgnoreCase);
+            var applyCalibrationCrop =
+                !string.Equals(
+                    mapSource,
+                    "world_map.ddsc",
+                    StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(
+                    mapSource,
+                    "manual-image",
+                    StringComparison.OrdinalIgnoreCase) &&
+                calibration.ImageCropWidth < 0.999999d;
 
             Radar.MapImage = ReserveMapImageStore.Load(
                 mapPath,
