@@ -15,6 +15,9 @@
     <None Include="..\..\offsets\*.json"
           Link="offsets\%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\data\population-animal-metadata.json"
+          Link="data\population-animal-metadata.json"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
