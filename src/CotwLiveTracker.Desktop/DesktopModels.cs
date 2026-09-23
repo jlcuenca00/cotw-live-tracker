@@ -8,7 +8,7 @@ internal sealed record ReserveChoice(int Index, string Name)
     public override string ToString() => Name;
 }
 
-internal sealed record LiveAnimalView(
+public sealed record LiveAnimalView(
     string Species,
     string Gender,
     string Difficulty,
@@ -25,7 +25,9 @@ internal sealed record LiveAnimalView(
     uint VisualVariationSeed,
     int? GroupIndex,
     int? AnimalIndex,
-    Float3 Position,
+    float X,
+    float Y,
+    float Z,
     float RelativeX,
     float RelativeZ,
     nint Address)
