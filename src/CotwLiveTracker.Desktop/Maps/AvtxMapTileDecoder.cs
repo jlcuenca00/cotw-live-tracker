@@ -51,8 +51,8 @@ internal static class AvtxMapTileDecoder
         var mipCountInFile = span[21];
         var headerSize = BinaryPrimitives.ReadUInt32LittleEndian(span.Slice(32, 4));
 
-        var total = Math.Max(1, totalMipCount);
-        var present = Math.Max(1, mipCountInFile);
+        var total = Math.Max(1, (int)totalMipCount);
+        var present = Math.Max(1, (int)mipCountInFile);
         if (present > total)
         {
             throw new InvalidDataException(
