@@ -139,7 +139,7 @@ if (watch && populationPath is not null)
     return 10;
 }
 
-Console.WriteLine("COTW Live Tracker v0.8");
+Console.WriteLine("COTW Live Tracker v0.9");
 Console.WriteLine($"Looking for process: {processName}.exe");
 
 using var process = GameProcessLocator.Find(processName);
@@ -243,36 +243,42 @@ try
     if (!watch)
     {
         var snapshot = tracker.ReadSnapshot();
-        PrintSnapshot(snapshot, speciesFilter);
+        PopulationReadResult? population = null;
 
         if (populationPath is not null)
         {
             try
             {
-                var population = PopulationFileReader.Read(
+                population = PopulationFileReader.Read(
                     populationPath,
                     populationReserve
                     ?? throw new InvalidOperationException("Population reserve metadata is unavailable."));
-                PrintPopulationSummary(
-                    population,
-                    speciesFilter,
-                    populationTop,
-                    populationFilters);
-
-                if (bridgeProbe)
-                {
-                    PrintIdentityBridgeProbe(
-                        memory,
-                        snapshot,
-                        population,
-                        speciesFilter,
-                        bridgeLimit);
-                }
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
             {
                 Console.Error.WriteLine($"Population diagnostic failed: {ex.Message}");
                 return 10;
+            }
+        }
+
+        PrintSnapshot(snapshot, speciesFilter, population);
+
+        if (population is not null)
+        {
+            PrintPopulationSummary(
+                population,
+                speciesFilter,
+                populationTop,
+                populationFilters);
+
+            if (bridgeProbe)
+            {
+                PrintIdentityBridgeProbe(
+                    memory,
+                    snapshot,
+                    population,
+                    speciesFilter,
+                    bridgeLimit);
             }
         }
 
@@ -294,9 +300,9 @@ try
             Console.Clear();
         }
 
-        Console.WriteLine("COTW Live Tracker v0.8 - LIVE");
+        Console.WriteLine("COTW Live Tracker v0.9 - LIVE");
         Console.WriteLine($"Profile: {profile.Name}");
-        PrintSnapshot(tracker.ReadSnapshot(), speciesFilter);
+        PrintSnapshot(tracker.ReadSnapshot(), speciesFilter, null);
 
         try
         {
@@ -321,7 +327,10 @@ catch (InvalidOperationException ex)
     return 9;
 }
 
-static void PrintSnapshot(LiveSnapshot snapshot, string? speciesFilter)
+static void PrintSnapshot(
+    LiveSnapshot snapshot,
+    string? speciesFilter,
+    PopulationReadResult? population)
 {
     Console.WriteLine(
         $"Camera XYZ: {snapshot.CameraPosition.X:F2}, {snapshot.CameraPosition.Y:F2}, {snapshot.CameraPosition.Z:F2}");
@@ -343,17 +352,56 @@ static void PrintSnapshot(LiveSnapshot snapshot, string? speciesFilter)
     }
 
     Console.WriteLine();
-    Console.WriteLine("DIST   HP           SPECIES                 XYZ");
-    Console.WriteLine("-----  -----------  ----------------------  --------------------------------");
+    Console.WriteLine("DIST   HP           SPECIES                 LVL          TROPHY    WT      SCORE    FUR");
+    Console.WriteLine("-----  -----------  ----------------------  -----------  --------  ------  -------  ------------------");
 
     foreach (var animal in displayed)
     {
+        var matched = population is null
+            ? null
+            : ResolveLivePopulationRecord(animal, population);
+
+        var level = matched?.DifficultyLabel ?? "?";
+        var trophy = matched?.Trophy ?? "?";
+        var fur = matched?.FurName ?? "?";
+
         Console.WriteLine(
             $"{animal.DistanceMeters,4:F0}m  {animal.Health,5:F1}/{animal.MaxHealth,-5:F1}  " +
             $"{Truncate(animal.Species, 22),-22}  " +
-            $"{animal.Position.X,8:F1} {animal.Position.Y,8:F1} {animal.Position.Z,8:F1}");
+            $"{Truncate(level, 11),-11}  {Truncate(trophy, 8),-8}  " +
+            $"{animal.Weight,6:F2}  {animal.Score,7:F2}  {Truncate(fur, 18),-18}");
     }
 }
+
+static PopulationAnimalRecord? ResolveLivePopulationRecord(
+    AnimalSnapshot live,
+    PopulationReadResult population)
+{
+    var normalizedLiveSpecies = NormalizeSpecies(live.Species);
+
+    var candidates = population.Animals
+        .Where(animal =>
+            NormalizeSpecies(animal.Species) == normalizedLiveSpecies ||
+            NormalizeSpecies(animal.Species).StartsWith(normalizedLiveSpecies, StringComparison.Ordinal) ||
+            normalizedLiveSpecies.StartsWith(NormalizeSpecies(animal.Species), StringComparison.Ordinal))
+        .Where(animal =>
+            animal.VisualVariationSeed == live.VisualVariationSeed &&
+            BitConverter.SingleToInt32Bits(animal.Weight) ==
+            BitConverter.SingleToInt32Bits(live.Weight) &&
+            BitConverter.SingleToInt32Bits(animal.Score) ==
+            BitConverter.SingleToInt32Bits(live.Score))
+        .Take(2)
+        .ToArray();
+
+    return candidates.Length == 1 ? candidates[0] : null;
+}
+
+static string NormalizeSpecies(string value) =>
+    new(
+        value
+            .Where(char.IsLetterOrDigit)
+            .Select(char.ToLowerInvariant)
+            .ToArray());
 
 static void PrintPopulationSummary(
     PopulationReadResult population,
