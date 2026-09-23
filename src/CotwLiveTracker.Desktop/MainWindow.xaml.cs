@@ -263,7 +263,7 @@ public partial class MainWindow : Window
         var candidateIndices = DesktopTrackerSession.Reserves
             .Select(reserve => reserve.Index)
             .ToArray();
-        var progress = new Progress<string>(message =>
+        IProgress<string> progress = new Progress<string>(message =>
         {
             MapModeStatusText.Text = message;
         });
