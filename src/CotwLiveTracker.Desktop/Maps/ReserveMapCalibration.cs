@@ -75,8 +75,8 @@ internal static class ReserveMapCalibrationCatalog
     // they should be normalized against the full 16.4 km reserve extent.
     public static ReserveMapCalibration Layton { get; } =
         ReserveMapCalibration.FromWorldBounds(
-            ReserveIndex: 1,
-            ReserveName: "Layton Lake District",
+            reserveIndex: 1,
+            reserveName: "Layton Lake District",
             xA: 0d,
             xB: 16400d,
             zA: 0d,
