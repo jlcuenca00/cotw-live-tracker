@@ -4,7 +4,7 @@ using System.Windows.Media;
 
 namespace CotwLiveTracker.Desktop.Controls;
 
-internal sealed class RadarControl : FrameworkElement
+public sealed class RadarControl : FrameworkElement
 {
     private static readonly Brush BackgroundBrush =
         new SolidColorBrush(Color.FromRgb(9, 13, 18));
@@ -28,6 +28,7 @@ internal sealed class RadarControl : FrameworkElement
     private readonly List<(Point Point, LiveAnimalView Animal)> _markers = [];
     private IReadOnlyList<LiveAnimalView> _animals = [];
     private LiveAnimalView? _selectedAnimal;
+    private double _maxRangeMeters = 1000d;
 
     public Action<LiveAnimalView>? AnimalSelected { get; set; }
 
@@ -41,7 +42,15 @@ internal sealed class RadarControl : FrameworkElement
         }
     }
 
-    public double MaxRangeMeters { get; set; } = 1000d;
+    public double MaxRangeMeters
+    {
+        get => _maxRangeMeters;
+        set
+        {
+            _maxRangeMeters = Math.Clamp(value, 100d, 2000d);
+            InvalidateVisual();
+        }
+    }
 
     public LiveAnimalView? SelectedAnimal
     {
