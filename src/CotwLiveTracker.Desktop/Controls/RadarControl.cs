@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using CotwLiveTracker.Desktop.Maps;
 
 namespace CotwLiveTracker.Desktop.Controls;
 
@@ -29,6 +30,10 @@ public sealed class RadarControl : FrameworkElement
     private IReadOnlyList<LiveAnimalView> _animals = [];
     private LiveAnimalView? _selectedAnimal;
     private double _maxRangeMeters = 1000d;
+    private ImageSource? _mapImage;
+    private ReserveMapCalibration? _mapCalibration;
+    private double _cameraX;
+    private double _cameraZ;
 
     public Action<LiveAnimalView>? AnimalSelected { get; set; }
 
@@ -52,6 +57,48 @@ public sealed class RadarControl : FrameworkElement
         }
     }
 
+    public ImageSource? MapImage
+    {
+        get => _mapImage;
+        set
+        {
+            _mapImage = value;
+            InvalidateVisual();
+        }
+    }
+
+    public ReserveMapCalibration? MapCalibration
+    {
+        get => _mapCalibration;
+        set
+        {
+            _mapCalibration = value;
+            InvalidateVisual();
+        }
+    }
+
+    public bool IsMapMode => MapImage is not null && MapCalibration is not null;
+
+    public double CameraX
+    {
+        get => _cameraX;
+        set
+        {
+            _cameraX = value;
+            InvalidateVisual();
+        }
+    }
+
+    public double CameraZ
+    {
+        get => _cameraZ;
+        set
+        {
+            _cameraZ = value;
+            InvalidateVisual();
+        }
+    }
+
     public LiveAnimalView? SelectedAnimal
     {
         get => _selectedAnimal;
@@ -68,7 +115,7 @@ public sealed class RadarControl : FrameworkElement
 
         var width = ActualWidth;
         var height = ActualHeight;
-        if (width <= 0 || height <= 0)
+        if (width <= 0d || height <= 0d)
         {
             return;
         }
@@ -76,8 +123,106 @@ public sealed class RadarControl : FrameworkElement
         drawingContext.DrawRectangle(
             BackgroundBrush,
             null,
-            new Rect(0, 0, width, height));
+            new Rect(0d, 0d, width, height));
 
+        _markers.Clear();
+
+        if (IsMapMode)
+        {
+            RenderMap(drawingContext, width, height);
+        }
+        else
+        {
+            RenderRelativeRadar(drawingContext, width, height);
+        }
+    }
+
+    private void RenderMap(
+        DrawingContext drawingContext,
+        double width,
+        double height)
+    {
+        var image = MapImage!;
+        var calibration = MapCalibration!;
+        var mapRect = FitImageRect(
+            image.Width,
+            image.Height,
+            width,
+            height,
+            10d);
+
+        drawingContext.DrawImage(image, mapRect);
+
+        // Darken the artwork slightly so live markers remain readable.
+        drawingContext.DrawRectangle(
+            new SolidColorBrush(Color.FromArgb(36, 0, 0, 0)),
+            null,
+            mapRect);
+
+        var playerNormalized = calibration.WorldToNormalized(
+            CameraX,
+            CameraZ);
+        var player = NormalizedToPoint(playerNormalized, mapRect);
+
+        if (ContainsWithMargin(playerNormalized, 0.05d))
+        {
+            drawingContext.DrawEllipse(
+                new SolidColorBrush(Color.FromArgb(72, 103, 232, 249)),
+                new Pen(PlayerBrush, 2d),
+                player,
+                10d,
+                10d);
+            drawingContext.DrawEllipse(
+                PlayerBrush,
+                null,
+                player,
+                4d,
+                4d);
+        }
+
+        foreach (var animal in Animals)
+        {
+            if (animal.DistanceMeters > MaxRangeMeters)
+            {
+                continue;
+            }
+
+            var normalized = calibration.WorldToNormalized(
+                animal.X,
+                animal.Z);
+            if (!ContainsWithMargin(normalized, 0.02d))
+            {
+                continue;
+            }
+
+            var point = NormalizedToPoint(normalized, mapRect);
+            DrawAnimalMarker(
+                drawingContext,
+                point,
+                animal,
+                mapMode: true);
+        }
+
+        DrawLabel(
+            drawingContext,
+            "N",
+            new Point(mapRect.Left + (mapRect.Width / 2d) - 5d, mapRect.Top + 8d),
+            TextBrush,
+            12d);
+
+        DrawLabel(
+            drawingContext,
+            "Layton calibrated map · cyan ring = player",
+            new Point(mapRect.Left + 10d, mapRect.Bottom - 24d),
+            TextBrush,
+            11d);
+    }
+
+    private void RenderRelativeRadar(
+        DrawingContext drawingContext,
+        double width,
+        double height)
+    {
         var center = new Point(width / 2d, height / 2d);
         var radius = Math.Max(
             30d,
@@ -127,8 +272,7 @@ public sealed class RadarControl : FrameworkElement
             5d,
             5d);
 
-        _markers.Clear();
-        if (MaxRangeMeters <= 0)
+        if (MaxRangeMeters <= 0d)
         {
             return;
         }
@@ -136,56 +280,76 @@ public sealed class RadarControl : FrameworkElement
         foreach (var animal in Animals)
         {
             var planarDistance = Math.Sqrt(
-                animal.RelativeX * animal.RelativeX +
-                animal.RelativeZ * animal.RelativeZ);
+                (animal.RelativeX * animal.RelativeX) +
+                (animal.RelativeZ * animal.RelativeZ));
             if (planarDistance > MaxRangeMeters)
             {
                 continue;
             }
 
             var point = new Point(
-                center.X + animal.RelativeX / MaxRangeMeters * radius,
-                center.Y - animal.RelativeZ / MaxRangeMeters * radius);
+                center.X + (animal.RelativeX / MaxRangeMeters * radius),
+                center.Y - (animal.RelativeZ / MaxRangeMeters * radius));
 
-            var brush = MarkerBrush(animal);
-            var selected = ReferenceEquals(animal, SelectedAnimal);
-            var markerRadius = selected ? 8d : 5d;
-
-            if (selected)
-            {
-                drawingContext.DrawEllipse(
-                    null,
-                    new Pen(PlayerBrush, 2d),
-                    point,
-                    11d,
-                    11d);
-            }
-
-            drawingContext.DrawEllipse(
-                brush,
-                null,
+            DrawAnimalMarker(
+                drawingContext,
                 point,
-                markerRadius,
-                markerRadius);
-
-            if (selected ||
-                animal.IsGreatOne ||
-                animal.IsRare ||
-                string.Equals(
-                    animal.Trophy,
-                    "Diamond",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                DrawLabel(
-                    drawingContext,
-                    $"{animal.DisplaySpecies} · {animal.DistanceMeters:F0}m",
-                    new Point(point.X + 10d, point.Y - 8d),
-                    brush,
-                    11d);
-            }
-
-            _markers.Add((point, animal));
+                animal,
+                mapMode: false);
         }
+    }
+
+    private void DrawAnimalMarker(
+        DrawingContext drawingContext,
+        Point point,
+        LiveAnimalView animal,
+        bool mapMode)
+    {
+        var brush = MarkerBrush(animal);
+        var selected = SelectedAnimal is not null &&
+                       SelectedAnimal.Address == animal.Address;
+        var markerRadius = selected ? 8d : mapMode ? 6d : 5d;
+
+        if (selected)
+        {
+            drawingContext.DrawEllipse(
+                null,
+                new Pen(PlayerBrush, 2d),
+                point,
+                11d,
+                11d);
+        }
+
+        drawingContext.DrawEllipse(
+            new SolidColorBrush(Color.FromArgb(96, 0, 0, 0)),
+            null,
+            point,
+            markerRadius + 2d,
+            markerRadius + 2d);
+        drawingContext.DrawEllipse(
+            brush,
+            null,
+            point,
+            markerRadius,
+            markerRadius);
+
+        if (selected ||
+            animal.IsGreatOne ||
+            animal.IsRare ||
+            string.Equals(
+                animal.Trophy,
+                "Diamond",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            DrawLabel(
+                drawingContext,
+                $"{animal.DisplaySpecies} · {animal.DistanceMeters:F0}m",
+                new Point(point.X + 10d, point.Y - 8d),
+                brush,
+                11d);
+        }
+
+        _markers.Add((point, animal));
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -211,6 +375,49 @@ public sealed class RadarControl : FrameworkElement
         SelectedAnimal = nearest.Marker.Animal;
         AnimalSelected?.Invoke(nearest.Marker.Animal);
     }
+
+    private static Rect FitImageRect(
+        double imageWidth,
+        double imageHeight,
+        double availableWidth,
+        double availableHeight,
+        double padding)
+    {
+        var width = Math.Max(1d, availableWidth - (padding * 2d));
+        var height = Math.Max(1d, availableHeight - (padding * 2d));
+
+        if (imageWidth <= 0d || imageHeight <= 0d)
+        {
+            return new Rect(padding, padding, width, height);
+        }
+
+        var scale = Math.Min(
+            width / imageWidth,
+            height / imageHeight);
+        var renderWidth = imageWidth * scale;
+        var renderHeight = imageHeight * scale;
+
+        return new Rect(
+            (availableWidth - renderWidth) / 2d,
+            (availableHeight - renderHeight) / 2d,
+            renderWidth,
+            renderHeight);
+    }
+
+    private static Point NormalizedToPoint(
+        Point normalized,
+        Rect mapRect) =>
+        new(
+            mapRect.Left + (normalized.X * mapRect.Width),
+            mapRect.Top + (normalized.Y * mapRect.Height));
+
+    private static bool ContainsWithMargin(
+        Point normalized,
+        double margin) =>
+        normalized.X >= -margin &&
+        normalized.X <= 1d + margin &&
+        normalized.Y >= -margin &&
+        normalized.Y <= 1d + margin;
 
     private static Brush MarkerBrush(LiveAnimalView animal)
     {
