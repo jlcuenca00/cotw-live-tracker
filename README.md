@@ -8,7 +8,7 @@ Build a live tracker that can display currently spawned animals, their positions
 
 ## Current status
 
-### v0.11 calibrated Layton map overlay
+### v0.12 built-in reserve map extraction
 
 The tracker can now:
 
@@ -40,7 +40,8 @@ The tracker can now:
 - read verified live weight, score and visual seed directly from Patch 9.3 animal entities;
 - join loaded entities to exact population records and enrich live rows with difficulty, trophy and fur;
 - launch a native WPF desktop app with dashboard, live radar, population scanner, filters, and patch/profile status;
-- overlay live animals and the player on a calibrated Layton Lake map exported from the user's own COTW installation.
+- overlay live animals and the player on a calibrated Layton Lake map;
+- read COTW's own TAB/ARC archives directly and build local reserve-map PNG caches without DECA.
 
 The CLI deliberately does not invent an "Uncommon" tier because rarity labels in game data are inconsistent across species.
 
@@ -60,31 +61,40 @@ Current desktop features:
 - choose a reserve and load its active population file;
 - one-second live refresh;
 - dashboard counts for loaded/resolved/Diamond/Rare/Great One animals;
+- built-in one-click extraction of installed reserve maps directly from the COTW game archives;
 - calibrated Layton Lake actual-map overlay using absolute game world X/Z coordinates;
-- automatic fallback to the north-up relative radar when no compatible map image is installed;
+- automatic fallback to the north-up relative radar when a reserve does not yet have a verified calibration profile;
 - clickable map/radar markers and selected-animal detail panel;
 - live animal table with difficulty, trophy, weight, score and fur;
 - full-reserve population scanner with species/trophy/difficulty/fur/sex/Rare/Great One filters;
 - runtime profile, SHA-256 and read-only access status.
 
-### Layton actual-map setup
+### Built-in reserve map extraction
 
-v0.11 includes a verified Layton world-to-map calibration, but deliberately does **not** redistribute the game's map artwork. Import the map image exported from your own COTW installation:
+DECA is no longer required for the normal map workflow.
 
-1. Download a Windows DECA release from `kk49/deca`, unzip it, and run `deca_gui.exe`.
-2. In DECA use **File -> New Project**, select your `theHunterCotW_F.exe`, and let the first archive index complete.
-3. In the DIR view navigate to `textures/ui/map_reserve_1/zoom3/`.
-4. Select a tile in that map set, enable **Export Map**, choose **Full**, then click **EXTRACT**.
-5. DECA's map exporter stitches the highest-resolution map tiles into `deca.map/full.png`.
-6. In COTW Live Tracker open **Live Radar -> Load actual map** and select that `full.png`.
+After attaching the desktop app to a running COTW session, open **Live Radar** and click **Build maps**. The tracker:
 
-The compatible Layton full image is the game's square 16x16 zoom-3 tile set (tiles 0-255 in row-major order). Cropped screenshots or web-guide maps are not calibration-compatible.
+1. uses the running executable path to locate the COTW installation;
+2. reads the small APEX v3 `.tab` archive indexes directly;
+3. hashes the known `textures/ui/map_reserve_X/zoom3/N.ddsc` virtual paths instead of performing global filename discovery;
+4. reads only matching map entries from the paired `.arc` files;
+5. unwraps AAF/Deflate containers when present;
+6. decodes AVTX map tiles;
+7. stitches the highest-resolution square tile grid in row-major order;
+8. writes one local PNG per installed reserve under the user's Local AppData map cache.
 
-The imported image is copied only to the user's local application-data folder and is never added to this repository.
+The extractor is read-only with respect to the game installation. It never rewrites COTW archives.
 
-#### Layton calibration
+The first implementation supports the map texture formats used by the known COTW map pipeline: BC1/DXT1, BC3/DXT5, RGBA8 and BGRA8. If a future reserve uses a different DXGI format, extraction fails for that reserve with the exact format number instead of producing a corrupt image.
 
-The transform maps game world `(X, Z)` directly to normalized image `(u, v)`:
+**Extraction and calibration are separate.** v0.12 can discover and cache installed reserve artwork broadly, but the geographically verified live overlay is currently enabled only for reserves with a verified world-to-map profile. Layton is the first verified profile. Other cached maps remain on the relative-radar fallback until their transform is derived and validated.
+
+The manual **Load image** button remains as a fallback for a compatible full reserve-map image.
+
+### Layton calibration
+
+The Layton transform maps game world `(X, Z)` directly to normalized image `(u, v)`:
 
 ```text
 u = 0.000114888268968409 * X
@@ -98,7 +108,7 @@ v = 0.000000306147534157835 * X
 
 It was fit against ten Layton outpost correspondences and independently checked against the live camera location near Roonachee. The tiny cross-axis coefficients are retained so the calibration does not assume zero rotation.
 
-DECA and an independently implemented COTW map viewer were also used to verify that the full Layton map uses a square 16x16 highest-zoom tile grid with row-major tile indexing, matching DECA's `export_map` stitch order.
+DECA and an independently implemented COTW map viewer were used during reverse-engineering to verify the map tile geometry and stitch order. They are research references only; the finished tracker does not invoke or require DECA.
 
 ## Build
 
@@ -219,11 +229,12 @@ If the executable changes or those checks fail, the tracker stops instead of tru
 
 ## Roadmap
 
-1. Validate the Layton actual-map overlay against the user's DECA-exported `full.png`.
-2. Add verified calibration profiles for the remaining reserves.
-3. Add cached/high-frequency refresh and marker filtering/highlighting controls.
-4. Add HM-focused herd tools and kill/respawn history.
-5. Package the desktop app as a normal Windows release.
+1. Validate the built-in Layton extraction and actual-map overlay against the user's installed game.
+2. Derive reserve world-to-map transforms automatically from COTW map/settings/POI data, then verify every current reserve.
+3. Detect the active reserve automatically instead of requiring manual reserve selection.
+4. Add cached/high-frequency refresh and marker filtering/highlighting controls.
+5. Add HM-focused herd tools and kill/respawn history.
+6. Package the desktop app as a normal Windows release.
 
 ## Source attribution
 
