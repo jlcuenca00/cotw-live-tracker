@@ -10,6 +10,11 @@ namespace CotwLiveTracker.Desktop;
 
 public partial class MainWindow : Window
 {
+    private sealed record MapBuildResult(
+        IReadOnlyList<int> Installed,
+        IReadOnlyList<int> Succeeded,
+        IReadOnlyList<string> Failures);
+
     private readonly DesktopTrackerSession _session = new();
     private readonly DispatcherTimer _refreshTimer;
 
@@ -238,6 +243,151 @@ public partial class MainWindow : Window
             $"{rows.Length:N0} matches / {_session.Population.Animals.Count:N0} total";
     }
 
+    private async void BuildMapsFromGameButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (!_session.IsAttached ||
+            string.IsNullOrWhiteSpace(_session.GameDirectory))
+        {
+            MessageBox.Show(
+                this,
+                "Attach to COTW first so the tracker can locate your installed game archives.",
+                "COTW Live Tracker",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var gameDirectory = _session.GameDirectory;
+        var candidateIndices = DesktopTrackerSession.Reserves
+            .Select(reserve => reserve.Index)
+            .ToArray();
+        var progress = new Progress<string>(message =>
+        {
+            MapModeStatusText.Text = message;
+        });
+
+        BuildMapsFromGameButton.IsEnabled = false;
+        LoadMapImageButton.IsEnabled = false;
+        AttachButton.IsEnabled = false;
+
+        try
+        {
+            var result = await Task.Run(() =>
+            {
+                var extractor = new ReserveMapExtractor(
+                    gameDirectory,
+                    progress.Report);
+                var installed = extractor
+                    .DiscoverInstalledReserves(candidateIndices)
+                    .ToArray();
+
+                var succeeded = new List<int>();
+                var failures = new List<string>();
+
+                foreach (var reserveIndex in installed)
+                {
+                    try
+                    {
+                        var reserveName = DesktopTrackerSession.Reserves
+                            .FirstOrDefault(reserve => reserve.Index == reserveIndex)
+                            ?.Name
+                            ?? $"Reserve {reserveIndex}";
+
+                        progress.Report($"Building {reserveName} map…");
+                        var map = extractor.Extract(
+                            reserveIndex,
+                            progress.Report);
+                        ReserveMapImageStore.SaveGenerated(map);
+                        succeeded.Add(reserveIndex);
+                    }
+                    catch (Exception ex)
+                    {
+                        failures.Add(
+                            $"Reserve {reserveIndex}: {ex.Message}");
+                    }
+                }
+
+                return new MapBuildResult(
+                    installed,
+                    succeeded,
+                    failures);
+            });
+
+            if (_session.Reserve is { } activeReserve)
+            {
+                ConfigureReserveMap(activeReserve.Index);
+            }
+
+            if (result.Installed.Count == 0)
+            {
+                MapModeStatusText.Text =
+                    "No known reserve map assets were found in the installed archives.";
+                MessageBox.Show(
+                    this,
+                    "The archive tables were readable, but none of the known reserve map paths were found. " +
+                    "Do not install DECA again—send me this result so we can adjust the archive/path handling.",
+                    "COTW Live Tracker",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            var calibratedCount = result.Succeeded.Count(index =>
+                ReserveMapCalibrationCatalog.Get(index) is not null);
+
+            var summary =
+                $"Found {result.Installed.Count:N0} installed reserve maps.\n" +
+                $"Built {result.Succeeded.Count:N0} local PNG map caches.\n" +
+                $"Verified calibration profiles currently active: {calibratedCount:N0}.";
+            if (result.Failures.Count > 0)
+            {
+                summary +=
+                    $"\n\n{result.Failures.Count:N0} map(s) could not be built:\n" +
+                    string.Join(
+                        "\n",
+                        result.Failures.Take(5));
+                if (result.Failures.Count > 5)
+                {
+                    summary +=
+                        $"\n…plus {result.Failures.Count - 5:N0} more.";
+                }
+            }
+
+            MessageBox.Show(
+                this,
+                summary,
+                "COTW map cache",
+                MessageBoxButton.OK,
+                result.Failures.Count == 0
+                    ? MessageBoxImage.Information
+                    : MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            MapModeStatusText.Text =
+                $"Map extraction failed · {ex.Message}";
+            MessageBox.Show(
+                this,
+                $"Could not build maps directly from COTW: {ex.Message}",
+                "COTW Live Tracker",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+        finally
+        {
+            BuildMapsFromGameButton.IsEnabled = _session.IsAttached;
+            AttachButton.IsEnabled = true;
+
+            if (_session.Reserve is { } activeReserve)
+            {
+                LoadMapImageButton.IsEnabled =
+                    ReserveMapCalibrationCatalog.Get(activeReserve.Index) is not null;
+            }
+        }
+    }
+
     private void LoadMapImageButton_Click(object sender, RoutedEventArgs e)
     {
         var reserve = _session.Reserve
@@ -304,25 +454,27 @@ public partial class MainWindow : Window
     private void ConfigureReserveMap(int reserveIndex)
     {
         var calibration = ReserveMapCalibrationCatalog.Get(reserveIndex);
+        var mapPath = ReserveMapImageStore.Find(reserveIndex);
+
         Radar.MapCalibration = calibration;
         Radar.MapImage = null;
 
         if (calibration is null)
         {
-            MapModeStatusText.Text =
-                "No verified calibration yet · relative radar fallback";
+            MapModeStatusText.Text = mapPath is null
+                ? "Map not cached · calibration pending · relative radar fallback"
+                : "Map cached · calibration pending · relative radar fallback";
             LoadMapImageButton.IsEnabled = false;
-            LoadMapImageButton.Content = "Load actual map";
+            LoadMapImageButton.Content = "Load image";
             return;
         }
 
         LoadMapImageButton.IsEnabled = true;
-        var mapPath = ReserveMapImageStore.Find(reserveIndex);
         if (mapPath is null)
         {
             MapModeStatusText.Text =
-                $"{calibration.ReserveName} calibrated · load exported map image";
-            LoadMapImageButton.Content = "Load actual map";
+                $"{calibration.ReserveName} calibrated · build maps or load image";
+            LoadMapImageButton.Content = "Load image";
             return;
         }
 
@@ -331,14 +483,14 @@ public partial class MainWindow : Window
             Radar.MapImage = ReserveMapImageStore.Load(mapPath);
             MapModeStatusText.Text =
                 $"{calibration.ReserveName} · calibrated actual-map mode";
-            LoadMapImageButton.Content = "Replace map";
+            LoadMapImageButton.Content = "Replace image";
         }
         catch (Exception ex)
         {
             Radar.MapImage = null;
             MapModeStatusText.Text =
                 $"Saved map failed to load · {ex.Message}";
-            LoadMapImageButton.Content = "Load actual map";
+            LoadMapImageButton.Content = "Load image";
         }
     }
 
@@ -396,6 +548,7 @@ public partial class MainWindow : Window
 
     private void SetConnected()
     {
+        BuildMapsFromGameButton.IsEnabled = true;
         StatusText.Text = $"Connected · PID {_session.ProcessId}";
         StatusText.Foreground = new SolidColorBrush(Color.FromRgb(187, 247, 208));
         StatusPill.Background = new SolidColorBrush(Color.FromRgb(20, 83, 45));
@@ -404,6 +557,11 @@ public partial class MainWindow : Window
 
     private void SetOffline(string message)
     {
+        if (!_session.IsAttached)
+        {
+            BuildMapsFromGameButton.IsEnabled = false;
+        }
+
         StatusText.Text = "Offline";
         StatusText.Foreground = new SolidColorBrush(Color.FromRgb(203, 213, 225));
         StatusPill.Background = new SolidColorBrush(Color.FromRgb(31, 41, 55));
