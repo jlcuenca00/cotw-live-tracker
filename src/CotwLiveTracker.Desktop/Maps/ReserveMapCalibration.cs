@@ -10,7 +10,11 @@ public sealed record ReserveMapCalibration(
     double U0,
     double VX,
     double VZ,
-    double V0)
+    double V0,
+    double ImageCropLeft = 0d,
+    double ImageCropTop = 0d,
+    double ImageCropWidth = 1d,
+    double ImageCropHeight = 1d)
 {
     public Point WorldToNormalized(double x, double z) =>
         new(
@@ -78,7 +82,14 @@ internal static class ReserveMapCalibrationCatalog
         U0: -0.589698550,
         VX: -0.0000000153992234,
         VZ: 0.000114831546,
-        V0: -0.412461871);
+        V0: -0.412461871,
+        // Companion/logical map coordinates are a ~1.884x crop of the
+        // raw zoom-3 stitched texture. Apply this crop to the image before
+        // drawing marker UVs.
+        ImageCropLeft: 0.31307032074825625,
+        ImageCropTop: 0.21901746481202866,
+        ImageCropWidth: 0.5308989156379242,
+        ImageCropHeight: 0.5310005123165159);
 
     public static ReserveMapCalibration? Get(int reserveIndex) =>
         reserveIndex == Layton.ReserveIndex

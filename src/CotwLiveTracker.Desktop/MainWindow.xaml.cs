@@ -592,7 +592,10 @@ public partial class MainWindow : Window
                 reserve.Index,
                 dialog.FileName);
             Radar.MapCalibration = calibration;
-            Radar.MapImage = ReserveMapImageStore.Load(stored);
+            Radar.MapImage = ReserveMapImageStore.Load(
+                stored,
+                calibration,
+                applyCalibrationCrop: false);
             _centerMapOnNextSnapshot = true;
             MapModeStatusText.Text =
                 $"{reserve.Name} · calibrated actual-map mode";
@@ -639,13 +642,33 @@ public partial class MainWindow : Window
 
         try
         {
-            Radar.MapImage = ReserveMapImageStore.Load(mapPath);
+            var applyCalibrationCrop =
+                !string.Equals(
+                    mapSource,
+                    "world_map.ddsc",
+                    StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(
+                    mapSource,
+                    "manual-image",
+                    StringComparison.OrdinalIgnoreCase) &&
+                calibration.ImageCropWidth < 0.999999d;
+
+            Radar.MapImage = ReserveMapImageStore.Load(
+                mapPath,
+                calibration,
+                applyCalibrationCrop);
             _centerMapOnNextSnapshot = true;
+
+            var cropStatus = applyCalibrationCrop
+                ? $" · image crop {1d / calibration.ImageCropWidth:F3}x"
+                : "";
+
             MapModeStatusText.Text =
                 $"{calibration.ReserveName} · calibrated actual-map mode" +
                 (string.IsNullOrWhiteSpace(mapSource)
                     ? ""
-                    : $" · source {mapSource}");
+                    : $" · source {mapSource}") +
+                cropStatus;
             LoadMapImageButton.Content = "Replace image";
         }
         catch (Exception ex)

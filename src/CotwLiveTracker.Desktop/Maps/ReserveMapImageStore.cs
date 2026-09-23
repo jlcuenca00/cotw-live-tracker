@@ -124,7 +124,10 @@ internal static class ReserveMapImageStore
             MapsDirectory,
             $"reserve-{reserveIndex}.source.txt");
 
-    public static BitmapImage Load(string path)
+    public static ImageSource Load(
+        string path,
+        ReserveMapCalibration? calibration = null,
+        bool applyCalibrationCrop = false)
     {
         using var stream = File.Open(
             path,
@@ -138,6 +141,43 @@ internal static class ReserveMapImageStore
         image.StreamSource = stream;
         image.EndInit();
         image.Freeze();
-        return image;
+
+        if (!applyCalibrationCrop ||
+            calibration is null ||
+            calibration.ImageCropWidth >= 0.999999d &&
+            calibration.ImageCropHeight >= 0.999999d)
+        {
+            return image;
+        }
+
+        var x = (int)Math.Round(
+            calibration.ImageCropLeft * image.PixelWidth);
+        var y = (int)Math.Round(
+            calibration.ImageCropTop * image.PixelHeight);
+        var width = (int)Math.Round(
+            calibration.ImageCropWidth * image.PixelWidth);
+        var height = (int)Math.Round(
+            calibration.ImageCropHeight * image.PixelHeight);
+
+        x = Math.Clamp(x, 0, Math.Max(0, image.PixelWidth - 1));
+        y = Math.Clamp(y, 0, Math.Max(0, image.PixelHeight - 1));
+        width = Math.Clamp(
+            width,
+            1,
+            image.PixelWidth - x);
+        height = Math.Clamp(
+            height,
+            1,
+            image.PixelHeight - y);
+
+        var cropped = new CroppedBitmap(
+            image,
+            new System.Windows.Int32Rect(
+                x,
+                y,
+                width,
+                height));
+        cropped.Freeze();
+        return cropped;
     }
 }
