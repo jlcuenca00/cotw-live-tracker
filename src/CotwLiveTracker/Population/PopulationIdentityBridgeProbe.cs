@@ -16,20 +16,23 @@ internal sealed record PopulationBridgeProbeResult(
     IReadOnlyList<PopulationBridgeMatch> Matches,
     int PointerReads)
 {
-    public PopulationAnimalRecord? UniqueAnimal
+    public PopulationAnimalRecord? ResolvedAnimal
     {
         get
         {
-            var animals = Matches
-                .Select(match => match.Animal)
-                .DistinctBy(animal => (
-                    animal.SpeciesIndex,
-                    animal.GroupIndex,
-                    animal.AnimalIndex))
+            var candidates = Matches
+                .GroupBy(match => (
+                    match.Animal.SpeciesIndex,
+                    match.Animal.GroupIndex,
+                    match.Animal.AnimalIndex))
+                .Where(group =>
+                    group.Any(match => match.Evidence == "stable-record") ||
+                    group.Select(match => match.Evidence).Distinct().Count() >= 2)
+                .Select(group => group.First().Animal)
                 .Take(2)
                 .ToArray();
 
-            return animals.Length == 1 ? animals[0] : null;
+            return candidates.Length == 1 ? candidates[0] : null;
         }
     }
 }
