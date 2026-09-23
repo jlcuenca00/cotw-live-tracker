@@ -31,6 +31,12 @@ internal static class PopulationReserveCatalog
         [21] = new("peru", "Intisuyu Peru Hunting Reserve", ["taruca", "western_mountain_coati", "puma", "ocelot", "cinnamon_teal", "collared_peccary", "vicuna", "spectacled_bear", "jaguar", "south_american_tapir", "black_caiman", "whitetail_deer", "capybara", "greater_grison"])
         };
 
+    public static IReadOnlyList<(int Index, ReservePopulationDefinition Reserve)> All =>
+        Reserves
+            .OrderBy(item => item.Key)
+            .Select(item => (item.Key, item.Value))
+            .ToArray();
+
     public static ReservePopulationDefinition Get(int reserveIndex) =>
         Reserves.TryGetValue(reserveIndex, out var reserve)
             ? reserve

@@ -8,7 +8,7 @@ Build a live tracker that can display currently spawned animals, their positions
 
 ## Current status
 
-### v0.9 promoted live identity fields
+### v0.10 native desktop shell
 
 The tracker can now:
 
@@ -38,9 +38,34 @@ The tracker can now:
 - print every matching record with `--population-all`;
 - run a targeted read-only identity probe against loaded animal objects and their immediate pointers;
 - read verified live weight, score and visual seed directly from Patch 9.3 animal entities;
-- join loaded entities to exact population records and enrich live rows with difficulty, trophy and fur.
+- join loaded entities to exact population records and enrich live rows with difficulty, trophy and fur;
+- launch a native WPF desktop app with dashboard, live radar, population scanner, filters, and patch/profile status.
 
 The CLI deliberately does not invent an "Uncommon" tier because rarity labels in game data are inconsistent across species. The graphical radar is **not implemented yet**.
+
+## Desktop app
+
+The first native Windows desktop shell lives in `src/CotwLiveTracker.Desktop`. It references the existing verified reader instead of duplicating memory or population logic.
+
+Run it with:
+
+```powershell
+dotnet run --project src/CotwLiveTracker.Desktop/CotwLiveTracker.Desktop.csproj -c Release
+```
+
+Current desktop features:
+
+- attach/reload against the verified Patch 9.3 profile;
+- choose a reserve and load its active population file;
+- one-second live refresh;
+- dashboard counts for loaded/resolved/Diamond/Rare/Great One animals;
+- north-up relative radar using game world X/Z coordinates;
+- clickable radar markers and selected-animal detail panel;
+- live animal table with difficulty, trophy, weight, score and fur;
+- full-reserve population scanner with species/trophy/difficulty/fur/sex/Rare/Great One filters;
+- runtime profile, SHA-256 and read-only access status.
+
+The radar is intentionally **relative** for v0.10. It does not yet place markers over a reserve map image because that requires a separately verified world-coordinate-to-map calibration.
 
 ## Build
 
@@ -162,9 +187,10 @@ If the executable changes or those checks fail, the tracker stops instead of tru
 ## Roadmap
 
 1. Validate promoted live identity fields across more species/reserves.
-2. Add the scanner/filter model to the desktop UI.
-3. Add a cached high-frequency entity reader and 2D radar/map UI.
-4. Add HM-focused filtering and kill/respawn history.
+2. Calibrate reserve map images to world X/Z coordinates and upgrade the relative radar into a true map overlay.
+3. Add cached/high-frequency refresh and marker filtering/highlighting controls.
+4. Add HM-focused herd tools and kill/respawn history.
+5. Package the desktop app as a normal Windows release.
 
 ## Source attribution
 
