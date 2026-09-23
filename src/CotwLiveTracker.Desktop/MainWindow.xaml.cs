@@ -613,6 +613,7 @@ public partial class MainWindow : Window
     {
         var calibration = ReserveMapCalibrationCatalog.Get(reserveIndex);
         var mapPath = ReserveMapImageStore.Find(reserveIndex);
+        var mapSource = ReserveMapImageStore.ReadSource(reserveIndex);
 
         Radar.MapCalibration = calibration;
         Radar.MapImage = null;
@@ -641,7 +642,10 @@ public partial class MainWindow : Window
             Radar.MapImage = ReserveMapImageStore.Load(mapPath);
             _centerMapOnNextSnapshot = true;
             MapModeStatusText.Text =
-                $"{calibration.ReserveName} · calibrated actual-map mode";
+                $"{calibration.ReserveName} · calibrated actual-map mode" +
+                (string.IsNullOrWhiteSpace(mapSource)
+                    ? ""
+                    : $" · source {mapSource}");
             LoadMapImageButton.Content = "Replace image";
         }
         catch (Exception ex)

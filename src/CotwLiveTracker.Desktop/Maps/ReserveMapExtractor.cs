@@ -1,4 +1,5 @@
 using System.IO;
+
 namespace CotwLiveTracker.Desktop.Maps;
 
 internal sealed record ExtractedReserveMap(
@@ -8,7 +9,8 @@ internal sealed record ExtractedReserveMap(
     int Stride,
     int TileGridSize,
     int DxgiFormat,
-    byte[] Bgra32);
+    byte[] Bgra32,
+    string Source);
 
 internal sealed class ReserveMapExtractor : IDisposable
 {
@@ -34,7 +36,9 @@ internal sealed class ReserveMapExtractor : IDisposable
             .Distinct()
             .OrderBy(index => index)
             .Where(index =>
-                _archives.ContainsVirtualPath(TilePath(index, HighestMapZoom, 0)))
+                _archives.ContainsVirtualPath(WorldMapPath(index)) ||
+                _archives.ContainsVirtualPath(
+                    TilePath(index, HighestMapZoom, 0)))
             .ToArray();
     }
 
@@ -42,11 +46,53 @@ internal sealed class ReserveMapExtractor : IDisposable
         int reserveIndex,
         Action<string>? progress = null)
     {
+        var worldMapPath = WorldMapPath(reserveIndex);
+        if (_archives.ContainsVirtualPath(worldMapPath))
+        {
+            try
+            {
+                progress?.Invoke(
+                    $"Reserve {reserveIndex}: extracting native world_map.ddsc…");
+
+                var payload = _archives.ReadVirtualFile(
+                    worldMapPath,
+                    expectedMagic: "AVTX");
+                var image = AvtxMapTileDecoder.Decode(payload);
+
+                progress?.Invoke(
+                    $"Reserve {reserveIndex}: native world map {image.Width}×{image.Height}");
+
+                return new ExtractedReserveMap(
+                    reserveIndex,
+                    image.Width,
+                    image.Height,
+                    image.Stride,
+                    TileGridSize: 1,
+                    image.DxgiFormat,
+                    image.Bgra32,
+                    Source: "world_map.ddsc");
+            }
+            catch (Exception ex)
+            {
+                progress?.Invoke(
+                    $"Reserve {reserveIndex}: world_map.ddsc could not be decoded ({ex.Message}); using zoom tiles.");
+            }
+        }
+
+        return ExtractZoomTiles(
+            reserveIndex,
+            progress);
+    }
+
+    private ExtractedReserveMap ExtractZoomTiles(
+        int reserveIndex,
+        Action<string>? progress)
+    {
         var gridSize = DiscoverGridSize(reserveIndex);
         var tileCount = checked(gridSize * gridSize);
 
         progress?.Invoke(
-            $"Reserve {reserveIndex}: extracting {tileCount:N0} map tiles ({gridSize}×{gridSize})…");
+            $"Reserve {reserveIndex}: fallback zoom-{HighestMapZoom} map · {tileCount:N0} tiles ({gridSize}×{gridSize})…");
 
         DecodedMapTile? first = null;
         byte[]? full = null;
@@ -110,7 +156,8 @@ internal sealed class ReserveMapExtractor : IDisposable
             fullStride,
             gridSize,
             first.DxgiFormat,
-            full);
+            full,
+            Source: $"zoom{HighestMapZoom}-stitched");
     }
 
     private int DiscoverGridSize(int reserveIndex)
@@ -134,7 +181,7 @@ internal sealed class ReserveMapExtractor : IDisposable
                 TilePath(reserveIndex, HighestMapZoom, 0)))
         {
             throw new FileNotFoundException(
-                $"No zoom-{HighestMapZoom} map was found for reserve {reserveIndex}.");
+                $"No native world map or zoom-{HighestMapZoom} map was found for reserve {reserveIndex}.");
         }
 
         return gridSize;
@@ -168,6 +215,9 @@ internal sealed class ReserveMapExtractor : IDisposable
         _archives.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    private static string WorldMapPath(int reserveIndex) =>
+        $"textures/ui/map_reserve_{reserveIndex}/world_map.ddsc";
 
     private static string TilePath(
         int reserveIndex,

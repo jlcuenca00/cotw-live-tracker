@@ -71,6 +71,14 @@ Current desktop features:
 
 ### Built-in reserve map extraction
 
+The extractor now prefers the reserve's dedicated
+`textures/ui/map_reserve_X/world_map.ddsc` asset because it is the map source
+closest to the in-game map UI coordinate frame.  The stitched `zoom3` pyramid
+remains a fallback when the native world-map asset is unavailable or cannot be
+decoded.  The active source is persisted beside the local PNG cache and shown
+in the Live Map status line.
+
+
 DECA is no longer required for the normal map workflow.
 
 After attaching the desktop app to a running COTW session, open **Live Radar** and click **Build maps**. The tracker:
