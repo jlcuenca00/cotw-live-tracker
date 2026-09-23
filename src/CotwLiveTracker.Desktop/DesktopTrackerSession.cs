@@ -32,6 +32,7 @@ internal sealed class DesktopTrackerSession : IDisposable
     public int? ProcessId => IsAttached ? _process!.Id : null;
     public OffsetProfile? Profile { get; private set; }
     public string ExecutableSha256 { get; private set; } = "";
+    public string GameDirectory { get; private set; } = "";
     public PopulationReadResult? Population { get; private set; }
     public ReserveChoice? Reserve { get; private set; }
     public string PopulationPath => Population?.FilePath ?? "";
@@ -58,6 +59,9 @@ internal sealed class DesktopTrackerSession : IDisposable
                 ?? throw new InvalidOperationException("The game main module is unavailable.");
 
             var executableHash = ExecutableFingerprint.Sha256(module.FileName);
+            var gameDirectory = Path.GetDirectoryName(module.FileName)
+                ?? throw new InvalidOperationException(
+                    "Could not determine the COTW installation directory.");
             if (!string.IsNullOrWhiteSpace(profile.ExecutableSha256) &&
                 !string.Equals(
                     profile.ExecutableSha256,
@@ -92,6 +96,7 @@ internal sealed class DesktopTrackerSession : IDisposable
                 _reader = reader;
                 Profile = profile;
                 ExecutableSha256 = executableHash;
+                GameDirectory = gameDirectory;
                 Population = population;
                 Reserve = new ReserveChoice(reserveIndex, reserve.DisplayName);
             }
@@ -214,6 +219,7 @@ internal sealed class DesktopTrackerSession : IDisposable
 
         Profile = null;
         ExecutableSha256 = "";
+        GameDirectory = "";
         Population = null;
         Reserve = null;
     }
