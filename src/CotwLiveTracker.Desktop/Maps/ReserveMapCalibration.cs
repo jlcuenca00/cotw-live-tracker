@@ -48,9 +48,6 @@ public sealed record ReserveMapCalibration(
                 "Reserve world bounds must have positive X and Z spans.");
         }
 
-        // The raw COTW/DECA full map image is the reserve's complete map
-        // extent. World positions therefore normalize directly into that
-        // full image rather than into a smaller hand-fit landmark region.
         return new ReserveMapCalibration(
             reserveIndex,
             reserveName,
@@ -65,22 +62,23 @@ public sealed record ReserveMapCalibration(
 
 internal static class ReserveMapCalibrationCatalog
 {
-    // Verified against the same full DECA/COTW reserve-1 map geometry used
-    // by need-zone mapping tools: Layton occupies world X 0..16400 m and
-    // world Z 0..16400 m across the entire stitched map texture.
+    // Layton is NOT a 0..16400 -> full-image map.
     //
-    // The previous outpost-derived fit compressed the world to ~8.7 km and
-    // therefore pushed live runtime positions toward/outside the western map
-    // boundary. Runtime X/Z are already in the map's meter coordinate system;
-    // they should be normalized against the full 16.4 km reserve extent.
-    public static ReserveMapCalibration Layton { get; } =
-        ReserveMapCalibration.FromWorldBounds(
-            reserveIndex: 1,
-            reserveName: "Layton Lake District",
-            xA: 0d,
-            xB: 16400d,
-            zA: 0d,
-            zB: 16400d);
+    // The raw zoom-3 tile sheet uses its own map projection.  These
+    // coefficients are the least-squares solution from all 18 known Layton
+    // outposts: game world X/Z -> the raw map_reserve_1 normalized position.
+    //
+    // This is independently checkable at Willipeg Southern Outpost:
+    // world (6666.631, 6600.873) -> UV approximately (0.1760, 0.3452).
+    public static ReserveMapCalibration Layton { get; } = new(
+        ReserveIndex: 1,
+        ReserveName: "Layton Lake District",
+        UX: 0.000114853521,
+        UZ: -0.00000000751486842,
+        U0: -0.589698550,
+        VX: -0.0000000153992234,
+        VZ: 0.000114831546,
+        V0: -0.412461871);
 
     public static ReserveMapCalibration? Get(int reserveIndex) =>
         reserveIndex == Layton.ReserveIndex
