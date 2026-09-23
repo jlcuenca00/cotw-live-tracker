@@ -8,7 +8,7 @@ Build a live tracker that can display currently spawned animals, their positions
 
 ## Current status
 
-### v0.7 structured population scanner
+### v0.8 identity-bridge diagnostics
 
 The tracker can now:
 
@@ -35,7 +35,8 @@ The tracker can now:
 - decode fur type from VisualVariationSeed;
 - show each fur's configured probability and flag normal furs below 1% as Rare;
 - filter full-reserve records by trophy, rare fur, Great One, difficulty, fur and sex;
-- print every matching record with `--population-all`.
+- print every matching record with `--population-all`;
+- run a targeted read-only identity probe against loaded animal objects and their immediate pointers.
 
 The CLI deliberately does not invent an "Uncommon" tier because rarity labels in game data are inconsistent across species. The graphical radar is **not implemented yet**.
 
@@ -120,6 +121,22 @@ Supported filters are `--trophy none|bronze|silver|gold|diamond|great-one`, `--r
 
 Population reading is currently one-shot and cannot be combined with `--watch`.
 
+## Experimental live-to-population identity probe
+
+The game keeps runtime copies of population animal records. APC-PW's live-population logic validates these records using the stable first 20 bytes: gender, weight, saved score, Great One/scripted flags, and visual seed.
+
+v0.8 adds a **read-only** diagnostic that checks only each loaded animal object plus immediate pointers for those signatures. It does not scan or write arbitrary process memory.
+
+Example:
+
+```powershell
+dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --population-reserve 1 --species whitetail --population-top 1 --bridge-probe --bridge-limit 8
+```
+
+A bridge result is marked `RESOLVED` only when the probe finds a full stable-record signature, or at least two independent exact clues that agree on one population record. A single seed or weight/score clue is reported only as a candidate.
+
+This is intentionally experimental until real Patch 9.3 sessions establish which animal-object pointer path, if any, consistently reaches the runtime population record.
+
 ## Offset profile status
 
 The bundled Patch 9.3 profile originated from a public community reverse-engineering source dated September 16, 2026 and has now been validated against a real Steam Patch 9.3 session.
@@ -142,7 +159,7 @@ If the executable changes or those checks fail, the tracker stops instead of tru
 
 ## Roadmap
 
-1. Research a reliable identity bridge between loaded runtime entities and their population records.
+1. Validate the v0.8 identity bridge probe against real loaded animals and promote any stable pointer path into the versioned offset profile.
 2. Add the scanner/filter model to the desktop UI.
 3. Add a cached high-frequency entity reader and 2D radar/map UI.
 4. Add HM-focused filtering and kill/respawn history.
