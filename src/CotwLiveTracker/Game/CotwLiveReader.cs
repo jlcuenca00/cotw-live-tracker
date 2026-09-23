@@ -11,6 +11,9 @@ internal sealed record AnimalSnapshot(
     float Health,
     float MaxHealth,
     float DistanceMeters,
+    float Weight,
+    float Score,
+    uint VisualVariationSeed,
     nint Address);
 
 internal sealed record LiveSnapshot(
@@ -235,7 +238,33 @@ internal sealed class CotwLiveReader
                 return false;
             }
 
-            animal = new AnimalSnapshot(species, position, health, maxHealth, distance, animalPointer);
+            var weight = ReadSingle(
+                _memory.ReadBytes(animalPointer + _offsets.AnimalWeight, sizeof(float)),
+                0);
+            var score = ReadSingle(
+                _memory.ReadBytes(animalPointer + _offsets.AnimalScore, sizeof(float)),
+                0);
+            var seedBytes = _memory.ReadBytes(
+                animalPointer + _offsets.AnimalVisualVariationSeed,
+                sizeof(uint));
+            var seed = BinaryPrimitives.ReadUInt32LittleEndian(seedBytes);
+
+            if (!float.IsFinite(weight) || weight < 0f ||
+                !float.IsFinite(score) || score < 0f)
+            {
+                return false;
+            }
+
+            animal = new AnimalSnapshot(
+                species,
+                position,
+                health,
+                maxHealth,
+                distance,
+                weight,
+                score,
+                seed,
+                animalPointer);
             return true;
         }
         catch (Exception ex) when (IsExpectedReadFailure(ex))

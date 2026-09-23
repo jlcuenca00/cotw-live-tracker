@@ -32,6 +32,9 @@ internal static class TrackerSelfTest
                 AnimalPosition: Ptr(0x148),
                 AnimalHealthMax: Ptr(0x178),
                 AnimalHealthCurrent: Ptr(0x17C),
+                AnimalWeight: Ptr(0x19C),
+                AnimalScore: Ptr(0x1A0),
+                AnimalVisualVariationSeed: Ptr(0x1B0),
                 SpeciesRagdollPath: Ptr(0xC0),
                 MaxAnimals: 512,
                 MaxDistanceMeters: 1000f);
@@ -55,6 +58,9 @@ internal static class TrackerSelfTest
             WriteSingle(liveBlock, 0x30, 100f);
             WriteSingle(liveBlock, 0x34, 40f);
             memory.Add(animal + offsets.AnimalPosition, liveBlock);
+            memory.Add(animal + offsets.AnimalWeight, SingleBytes(72.5f));
+            memory.Add(animal + offsets.AnimalScore, SingleBytes(248.25f));
+            memory.Add(animal + offsets.AnimalVisualVariationSeed, UInt32Bytes(123456789u));
 
             var tracker = new CotwLiveReader(memory, moduleBase, offsets);
             var probe = tracker.Probe();
@@ -85,6 +91,14 @@ internal static class TrackerSelfTest
             {
                 throw new InvalidOperationException(
                     $"Unexpected health {result.Health}/{result.MaxHealth}.");
+            }
+
+            if (result.Weight != 72.5f ||
+                result.Score != 248.25f ||
+                result.VisualVariationSeed != 123456789u)
+            {
+                throw new InvalidOperationException(
+                    "Live weight/score/seed metadata decoded incorrectly.");
             }
 
             TestPopulationRecordRecognition();
@@ -296,6 +310,9 @@ internal static class TrackerSelfTest
             100f,
             100f,
             100f,
+            record.Weight,
+            record.Score,
+            record.VisualVariationSeed,
             entityAddress);
 
         var result = PopulationIdentityBridgeProbe.Probe(
@@ -328,6 +345,20 @@ internal static class TrackerSelfTest
     {
         var bytes = new byte[sizeof(long)];
         BinaryPrimitives.WriteInt64LittleEndian(bytes, value.ToInt64());
+        return bytes;
+    }
+
+    private static byte[] SingleBytes(float value)
+    {
+        var bytes = new byte[sizeof(float)];
+        WriteSingle(bytes, 0, value);
+        return bytes;
+    }
+
+    private static byte[] UInt32Bytes(uint value)
+    {
+        var bytes = new byte[sizeof(uint)];
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes, value);
         return bytes;
     }
 
