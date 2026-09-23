@@ -154,6 +154,8 @@ internal static class TrackerSelfTest
             record.Gender != "male" ||
             record.Weight != 72.5f ||
             record.Score != 248.25f ||
+            record.DifficultyLevel != 1 ||
+            record.DifficultyLabel != "1-Trivial" ||
             record.VisualVariationSeed != 123456789u ||
             record.Id != 98765u ||
             record.MapX != 6800f ||
