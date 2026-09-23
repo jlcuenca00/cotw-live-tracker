@@ -8,7 +8,7 @@ Build a live tracker that can display currently spawned animals, their positions
 
 ## Current status
 
-### v0.4 structured full-reserve population reader
+### v0.6 structured population classification
 
 The tracker can now:
 
@@ -29,9 +29,13 @@ The tracker can now:
 - walk the real `Populations -> Groups -> Animals` hierarchy;
 - associate each population slot with the reserve's species order;
 - decode each animal's gender, weight, saved score, Great One/scripted flags, visual-variation seed, ID and stored map position;
-- summarize full-reserve totals and herd/group membership by species.
+- summarize full-reserve totals and herd/group membership by species;
+- derive species-specific difficulty labels from saved weight;
+- classify saved trophy score as Bronze, Silver, Gold, Diamond or Great One;
+- decode fur type from VisualVariationSeed;
+- show each fur's configured probability and flag normal furs below 1% as Rare.
 
-Difficulty/level and trophy labels can now be derived from the structured weight/score records in a later step. Fur-name decoding and the graphical radar are **not implemented yet**.
+The CLI deliberately does not invent an "Uncommon" tier because rarity labels in game data are inconsistent across species. The graphical radar is **not implemented yet**.
 
 ## Build
 
@@ -93,7 +97,7 @@ Or provide a population file explicitly together with its reserve index:
 dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --population-reserve 1 --population-file "C:\\path\\to\\animal_population_1"
 ```
 
-The structured reader prints reserve-wide species totals, group counts, male/female counts, Great One counts, maximum saved weight/score, and the top population records for each species.
+The structured reader prints reserve-wide species totals, group counts, male/female counts, Great One/Diamond/rare-fur counts, maximum saved weight/score, and the top population records for each species. Detailed rows include difficulty, trophy medal, decoded fur and fur probability.
 
 Use `--population-top 1` through `20` to change how many top records are shown per species. Use `--species "whitetail"` to narrow both the live list and population output.
 
@@ -121,12 +125,11 @@ If the executable changes or those checks fail, the tracker stops instead of tru
 
 ## Roadmap
 
-1. Validate the structured ADF population reader against the real Layton Patch 9.3 save.
-2. Derive difficulty/level and trophy labels from verified population weight/score data.
-3. Decode fur names from visual-variation seeds.
-4. Research a reliable identity bridge between loaded runtime entities and their population records.
-5. Add a cached high-frequency entity reader and 2D radar/map UI.
-6. Add HM-focused filtering and kill/respawn history.
+1. Validate medal and fur decoding against the real Layton population.
+2. Research a reliable identity bridge between loaded runtime entities and their population records.
+3. Add filters for Diamond/Great One/rare fur/difficulty in the desktop data model.
+4. Add a cached high-frequency entity reader and 2D radar/map UI.
+5. Add HM-focused filtering and kill/respawn history.
 
 ## Source attribution
 

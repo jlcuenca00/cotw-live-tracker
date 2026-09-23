@@ -12,6 +12,12 @@ internal sealed record PopulationAnimalRecord(
     float Score,
     int DifficultyLevel,
     string DifficultyLabel,
+    string Trophy,
+    string FurKey,
+    string FurName,
+    string FurRarity,
+    float FurProbability,
+    bool IsRareFur,
     bool IsGreatOne,
     bool IsScripted,
     uint VisualVariationSeed,
@@ -205,7 +211,9 @@ internal static class PopulationFileReader
                 $"Invalid animal values in {species} group {groupIndex}, animal {animalIndex}.");
         }
 
-        var difficulty = PopulationDifficultyCatalog.Get(species, weight);
+        var difficulty = PopulationDifficultyCatalog.Get(species, weight, greatOne);
+        var trophy = PopulationAnimalMetadataCatalog.GetTrophy(species, score, greatOne);
+        var fur = PopulationAnimalMetadataCatalog.GetFur(species, gender, greatOne, seed);
 
         return new PopulationAnimalRecord(
             species,
@@ -217,6 +225,12 @@ internal static class PopulationFileReader
             score,
             difficulty.Level,
             difficulty.Label,
+            trophy.Medal,
+            fur.Key,
+            fur.Name,
+            fur.RarityLabel,
+            fur.Probability,
+            fur.IsRare,
             greatOne,
             scripted,
             seed,

@@ -73,7 +73,7 @@ if (watch && populationPath is not null)
     return 10;
 }
 
-Console.WriteLine("COTW Live Tracker v0.5");
+Console.WriteLine("COTW Live Tracker v0.6");
 Console.WriteLine($"Looking for process: {processName}.exe");
 
 using var process = GameProcessLocator.Find(processName);
@@ -214,7 +214,7 @@ try
             Console.Clear();
         }
 
-        Console.WriteLine("COTW Live Tracker v0.5 - LIVE");
+        Console.WriteLine("COTW Live Tracker v0.6 - LIVE");
         Console.WriteLine($"Profile: {profile.Name}");
         PrintSnapshot(tracker.ReadSnapshot(), speciesFilter);
 
@@ -308,8 +308,8 @@ static void PrintPopulationSummary(
     }
 
     Console.WriteLine();
-    Console.WriteLine("SPECIES                 GROUPS  TOTAL   MALE FEMALE  GO   MAX WT  MAX SCORE");
-    Console.WriteLine("----------------------  ------  ------  ----- ------  --  -------  ---------");
+    Console.WriteLine("SPECIES                 GROUPS  TOTAL   MALE FEMALE  GO  DIA RARE   MAX WT  MAX SCORE");
+    Console.WriteLine("----------------------  ------  ------  ----- ------  --  --- ----  -------  ---------");
 
     foreach (var item in displayed)
     {
@@ -317,13 +317,15 @@ static void PrintPopulationSummary(
         var males = animals.Count(animal => animal.Gender == "male");
         var females = animals.Count(animal => animal.Gender == "female");
         var greatOnes = animals.Count(animal => animal.IsGreatOne);
+        var diamonds = animals.Count(animal => animal.Trophy == "Diamond");
+        var rareFurs = animals.Count(animal => animal.IsRareFur);
         var maxWeight = animals.Max(animal => animal.Weight);
         var maxScore = animals.Max(animal => animal.Score);
 
         Console.WriteLine(
             $"{Truncate(item.Species.Replace('_', ' '), 22),-22}  " +
             $"{item.Groups.Count,6}  {animals.Count,6}  {males,5} {females,6}  " +
-            $"{greatOnes,2}  {maxWeight,7:F2}  {maxScore,9:F2}");
+            $"{greatOnes,2}  {diamonds,3} {rareFurs,4}  {maxWeight,7:F2}  {maxScore,9:F2}");
     }
 
     Console.WriteLine();
@@ -341,9 +343,10 @@ static void PrintPopulationSummary(
         {
             Console.WriteLine(
                 $"  G{animal.GroupIndex,-3} #{animal.AnimalIndex,-3} " +
-                $"{animal.Gender,-7} {animal.DifficultyLabel,-13} " +
+                $"{animal.Gender,-7} {animal.DifficultyLabel,-13} {animal.Trophy,-9} " +
                 $"wt {animal.Weight,8:F2}  score {animal.Score,8:F2}  " +
-                $"GO {(animal.IsGreatOne ? "yes" : "no "),-3}  " +
+                $"fur {Truncate(animal.FurName, 18),-18} " +
+                $"[{animal.FurRarity} {animal.FurProbability * 100f,6:F3}%]  " +
                 $"seed {animal.VisualVariationSeed,10}  id {animal.Id,10}");
         }
     }
