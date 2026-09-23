@@ -5,7 +5,7 @@ using System.Text;
 
 namespace CotwLiveTracker.Desktop.Maps;
 
-internal sealed class ApexV3ArchiveIndex
+internal sealed class ApexV3ArchiveIndex : IDisposable
 {
     private sealed record ArchiveEntry(
         string TabPath,
@@ -17,6 +17,8 @@ internal sealed class ApexV3ArchiveIndex
         DateTime LastWriteTimeUtc);
 
     private readonly Dictionary<uint, List<ArchiveEntry>> _entries = new();
+    private readonly Dictionary<string, FileStream> _openArchives =
+        new(StringComparer.OrdinalIgnoreCase);
 
     public ApexV3ArchiveIndex(string gameDirectory)
     {
@@ -190,26 +192,41 @@ internal sealed class ApexV3ArchiveIndex
         }
     }
 
-    private static byte[] ReadEntry(ArchiveEntry entry)
+    private byte[] ReadEntry(ArchiveEntry entry)
     {
-        using var stream = File.Open(
-            entry.ArcPath,
+        var stream = GetArchiveStream(entry.ArcPath);
+
+        lock (stream)
+        {
+            var end = (ulong)entry.Offset + entry.Size;
+            if (end > (ulong)stream.Length)
+            {
+                throw new InvalidDataException(
+                    $"Archive entry exceeds {Path.GetFileName(entry.ArcPath)} bounds.");
+            }
+
+            stream.Position = entry.Offset;
+            var length = checked((int)entry.Size);
+            var data = new byte[length];
+            stream.ReadExactly(data);
+            return data;
+        }
+    }
+
+    private FileStream GetArchiveStream(string path)
+    {
+        if (_openArchives.TryGetValue(path, out var stream))
+        {
+            return stream;
+        }
+
+        stream = File.Open(
+            path,
             FileMode.Open,
             FileAccess.Read,
             FileShare.ReadWrite | FileShare.Delete);
-
-        var end = (ulong)entry.Offset + entry.Size;
-        if (end > (ulong)stream.Length)
-        {
-            throw new InvalidDataException(
-                $"Archive entry exceeds {Path.GetFileName(entry.ArcPath)} bounds.");
-        }
-
-        stream.Position = entry.Offset;
-        var length = checked((int)entry.Size);
-        var data = new byte[length];
-        stream.ReadExactly(data);
-        return data;
+        _openArchives.Add(path, stream);
+        return stream;
     }
 
     private static bool IsAaf(byte[] data) =>
@@ -332,6 +349,17 @@ internal sealed class ApexV3ArchiveIndex
         }
 
         return 1;
+    }
+
+    public void Dispose()
+    {
+        foreach (var stream in _openArchives.Values)
+        {
+            stream.Dispose();
+        }
+
+        _openArchives.Clear();
+        GC.SuppressFinalize(this);
     }
 
     private static uint JenkinsHashLittle(ReadOnlySpan<byte> data)
