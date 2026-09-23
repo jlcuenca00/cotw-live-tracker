@@ -322,7 +322,7 @@ public sealed class RadarControl : FrameworkElement
 
         DrawLabel(
             drawingContext,
-            $"{calibration.ReserveName} · player X/Z {CameraX:F1}, {CameraZ:F1}",
+            $"{calibration.ReserveName} · player X/Z {CameraX:F1}, {CameraZ:F1} · UV {playerNormalized.X:F4}, {playerNormalized.Y:F4}",
             new Point(14d, height - 27d),
             TextBrush,
             11d);
