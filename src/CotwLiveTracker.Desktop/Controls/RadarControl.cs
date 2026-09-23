@@ -31,6 +31,10 @@ public sealed class RadarControl : FrameworkElement
         new SolidColorBrush(Color.FromArgb(96, 0, 0, 0));
     private static readonly Brush PlayerHaloBrush =
         new SolidColorBrush(Color.FromArgb(72, 103, 232, 249));
+    private static readonly Brush ReferenceBrush =
+        new SolidColorBrush(Color.FromRgb(251, 146, 60));
+    private static readonly Brush ReferenceFillBrush =
+        new SolidColorBrush(Color.FromArgb(70, 251, 146, 60));
 
     private const double MinimumMapZoom = 1d;
     private const double MaximumMapZoom = 10d;
@@ -251,6 +255,30 @@ public sealed class RadarControl : FrameworkElement
             null,
             mapRect);
 
+        var references =
+            ReserveMapReferenceCatalog.Get(
+                calibration.ReserveIndex);
+        var nearestReference = references
+            .OrderBy(reference =>
+                reference.DistanceTo(
+                    CameraX,
+                    CameraZ))
+            .FirstOrDefault();
+
+        foreach (var reference in references)
+        {
+            var referencePoint = NormalizedToPoint(
+                reference.ExpectedNormalized,
+                mapRect);
+
+            drawingContext.DrawEllipse(
+                ReferenceFillBrush,
+                new Pen(ReferenceBrush, 1.5d),
+                referencePoint,
+                5d,
+                5d);
+        }
+
         var playerNormalized =
             calibration.WorldToNormalized(
                 CameraX,
@@ -258,6 +286,40 @@ public sealed class RadarControl : FrameworkElement
         var player = NormalizedToPoint(
             playerNormalized,
             mapRect);
+
+        if (nearestReference is not null)
+        {
+            var nearestPoint = NormalizedToPoint(
+                nearestReference.ExpectedNormalized,
+                mapRect);
+            var nearestDistance =
+                nearestReference.DistanceTo(
+                    CameraX,
+                    CameraZ);
+
+            drawingContext.DrawEllipse(
+                null,
+                new Pen(ReferenceBrush, 2d),
+                nearestPoint,
+                9d,
+                9d);
+
+            if (nearestDistance <= 250d)
+            {
+                drawingContext.DrawLine(
+                    new Pen(ReferenceBrush, 1d),
+                    player,
+                    nearestPoint);
+                DrawLabel(
+                    drawingContext,
+                    $"{nearestReference.Name} · {nearestDistance:F1}m",
+                    new Point(
+                        nearestPoint.X + 11d,
+                        nearestPoint.Y + 6d),
+                    ReferenceBrush,
+                    11d);
+            }
+        }
 
         if (ContainsWithMargin(
                 playerNormalized,
@@ -320,9 +382,13 @@ public sealed class RadarControl : FrameworkElement
             TextBrush,
             12d);
 
+        var referenceStatus = nearestReference is null
+            ? ""
+            : $" · nearest {nearestReference.Name} {nearestReference.DistanceTo(CameraX, CameraZ):F1}m";
+
         DrawLabel(
             drawingContext,
-            $"{calibration.ReserveName} · player X/Z {CameraX:F1}, {CameraZ:F1} · UV {playerNormalized.X:F4}, {playerNormalized.Y:F4}",
+            $"{calibration.ReserveName} · player X/Z {CameraX:F1}, {CameraZ:F1} · UV {playerNormalized.X:F4}, {playerNormalized.Y:F4}{referenceStatus}",
             new Point(14d, height - 27d),
             TextBrush,
             11d);

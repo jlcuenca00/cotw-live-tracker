@@ -94,27 +94,35 @@ The manual **Load image** button remains as a fallback for a compatible full res
 
 ### Layton calibration
 
-The built-in zoom-3 COTW/DECA tile sheet is the **full reserve map extent**.
-Layton's live world coordinate bounds are 0..16,400 metres on both X and Z,
-so the raw map transform is:
+Layton's raw zoom-3 tile sheet does **not** use a simple `0..16400 -> 0..1`
+normalization.  v0.15 briefly used that assumption and produced visibly incorrect
+player placement.
+
+The tracker now uses the independently verified 18-outpost world-to-map fit:
 
 ```text
-u = X / 16400
-v = Z / 16400
+u = 0.000114853521 * X
+  - 0.00000000751486842 * Z
+  - 0.589698550
+
+v = -0.0000000153992234 * X
+  + 0.000114831546 * Z
+  - 0.412461871
 ```
 
-This replaces the earlier landmark-fit transform, which accidentally compressed
-the map to roughly 8.7 km and could place correct runtime coordinates near or
-outside the wrong reserve boundary.
+The desktop map also contains a separate set of 18 Layton outpost reference
+anchors.  These are drawn independently of the affine transform, so the live
+player marker can be checked against a known landmark rather than against the
+in-game map cursor.
 
-The calibration type now supports direct world-bounds normalization so additional
-reserves can use their actual COTW coordinate extents instead of hand-fit
-landmark coefficients.
+For example, Willipeg Southern Outpost is approximately
+`(6666.631, 6600.873)` in game world coordinates and `(0.1760, 0.3452)` on
+the raw Layton map.  A player standing there should overlap the orange reference
+marker within a few metres.
 
 DECA and independently implemented COTW map tools were used during
-reverse-engineering to verify the map tile geometry and world-bound approach.
-They are research references only; the finished tracker does not invoke or
-require DECA.
+reverse-engineering to verify tile geometry. They are research references only;
+the finished tracker does not invoke or require DECA.
 
 ### Difficulty accuracy and native-level probe
 
