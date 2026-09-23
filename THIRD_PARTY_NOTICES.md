@@ -2,8 +2,9 @@
 
 ## Animal Population Changer - Pure Winter Edition (APC-PW)
 
-Reserve population ordering and APEX ADF format semantics used by the structured
-population reader were cross-checked against APC-PW:
+Reserve population ordering, APEX ADF format semantics, species difficulty/trophy
+metadata, fur probability metadata, and visual-seed fur algorithm used by the
+structured population reader were cross-checked against APC-PW:
 
 https://github.com/Pure-Winter-hue/apc-pw
 
