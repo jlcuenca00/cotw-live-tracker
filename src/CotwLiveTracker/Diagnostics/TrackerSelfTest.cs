@@ -170,6 +170,50 @@ internal static class TrackerSelfTest
             throw new InvalidOperationException("Structured population record decoded incorrectly.");
         }
 
+        var exactFilter = new PopulationFilterOptions(
+            Trophy: "gold",
+            Difficulty: 1,
+            Fur: "brown",
+            Sex: "male");
+        if (!exactFilter.Matches(record))
+        {
+            throw new InvalidOperationException("Expected population filter to match synthetic animal.");
+        }
+
+        if (new PopulationFilterOptions(Trophy: "diamond").Matches(record))
+        {
+            throw new InvalidOperationException("Diamond filter incorrectly matched a Gold animal.");
+        }
+
+        var rareRecord = record with
+        {
+            FurKey = "albino",
+            FurName = "Albino",
+            FurRarity = "Rare",
+            FurProbability = 0.0005f,
+            IsRareFur = true
+        };
+        if (!new PopulationFilterOptions(RareOnly: true, Fur: "albino").Matches(rareRecord))
+        {
+            throw new InvalidOperationException("Rare-fur filter did not match synthetic rare animal.");
+        }
+
+        var greatOneRecord = record with
+        {
+            DifficultyLevel = 10,
+            DifficultyLabel = "10-Fabled",
+            Trophy = "Great One",
+            IsGreatOne = true
+        };
+        if (!new PopulationFilterOptions(
+                Trophy: "great-one",
+                GreatOneOnly: true,
+                Difficulty: 10)
+            .Matches(greatOneRecord))
+        {
+            throw new InvalidOperationException("Great One filter did not match synthetic Great One.");
+        }
+
         var seedProbability = PopulationAnimalMetadataCatalog.SeedToProbability(123456789u);
         if (MathF.Abs(seedProbability - 0.404632568359375f) > 0.000001f)
         {

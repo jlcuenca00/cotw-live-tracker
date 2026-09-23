@@ -26,6 +26,62 @@ var intervalMs = GetIntOption(args, "--interval-ms", 1000, 100, 10_000);
 var populationFileOption = GetOption(args, "--population-file");
 var populationReserveOption = GetOption(args, "--population-reserve");
 var populationTop = GetIntOption(args, "--population-top", 3, 1, 20);
+var trophyFilter = GetOption(args, "--trophy");
+var rareOnly = HasFlag(args, "--rare");
+var greatOneOnly = HasFlag(args, "--great-one");
+var difficultyFilterRaw = GetOption(args, "--difficulty");
+var furFilter = GetOption(args, "--fur");
+var sexFilter = GetOption(args, "--sex");
+var populationAll = HasFlag(args, "--population-all");
+
+int? difficultyFilter = null;
+if (!string.IsNullOrWhiteSpace(difficultyFilterRaw))
+{
+    if (!int.TryParse(difficultyFilterRaw, out var parsedDifficulty) ||
+        parsedDifficulty < 1 ||
+        parsedDifficulty > 10)
+    {
+        Console.Error.WriteLine("--difficulty must be an integer between 1 and 10.");
+        return 10;
+    }
+
+    difficultyFilter = parsedDifficulty;
+}
+
+if (!string.IsNullOrWhiteSpace(trophyFilter))
+{
+    var normalizedTrophy = trophyFilter
+        .Trim()
+        .Replace('_', ' ')
+        .Replace('-', ' ')
+        .ToLowerInvariant();
+    var validTrophies = new[] { "none", "bronze", "silver", "gold", "diamond", "great one" };
+    if (!validTrophies.Contains(normalizedTrophy, StringComparer.OrdinalIgnoreCase))
+    {
+        Console.Error.WriteLine(
+            "--trophy must be one of: none, bronze, silver, gold, diamond, great-one.");
+        return 10;
+    }
+}
+
+if (!string.IsNullOrWhiteSpace(sexFilter))
+{
+    sexFilter = sexFilter.Trim().ToLowerInvariant();
+    if (sexFilter is not ("male" or "female"))
+    {
+        Console.Error.WriteLine("--sex must be either male or female.");
+        return 10;
+    }
+}
+
+var populationFilters = new PopulationFilterOptions(
+    Trophy: trophyFilter,
+    RareOnly: rareOnly,
+    GreatOneOnly: greatOneOnly,
+    Difficulty: difficultyFilter,
+    Fur: furFilter,
+    Sex: sexFilter,
+    ShowAll: populationAll);
 
 string? populationPath = null;
 ReservePopulationDefinition? populationReserve = null;
@@ -67,13 +123,21 @@ catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
     return 10;
 }
 
+if ((populationFilters.HasAnimalFilters || populationFilters.ShowAll) &&
+    populationPath is null)
+{
+    Console.Error.WriteLine(
+        "Population filters require --population-reserve (or --population-file with --population-reserve).");
+    return 10;
+}
+
 if (watch && populationPath is not null)
 {
     Console.Error.WriteLine("Structured population reading is currently one-shot. Remove --watch and run again.");
     return 10;
 }
 
-Console.WriteLine("COTW Live Tracker v0.6");
+Console.WriteLine("COTW Live Tracker v0.7");
 Console.WriteLine($"Looking for process: {processName}.exe");
 
 using var process = GameProcessLocator.Find(processName);
@@ -187,7 +251,11 @@ try
                     populationPath,
                     populationReserve
                     ?? throw new InvalidOperationException("Population reserve metadata is unavailable."));
-                PrintPopulationSummary(population, speciesFilter, populationTop);
+                PrintPopulationSummary(
+                    population,
+                    speciesFilter,
+                    populationTop,
+                    populationFilters);
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
             {
@@ -214,7 +282,7 @@ try
             Console.Clear();
         }
 
-        Console.WriteLine("COTW Live Tracker v0.6 - LIVE");
+        Console.WriteLine("COTW Live Tracker v0.7 - LIVE");
         Console.WriteLine($"Profile: {profile.Name}");
         PrintSnapshot(tracker.ReadSnapshot(), speciesFilter);
 
@@ -278,7 +346,8 @@ static void PrintSnapshot(LiveSnapshot snapshot, string? speciesFilter)
 static void PrintPopulationSummary(
     PopulationReadResult population,
     string? speciesFilter,
-    int topRecords)
+    int topRecords,
+    PopulationFilterOptions filters)
 {
     Console.WriteLine();
     Console.WriteLine("FULL RESERVE POPULATION");
@@ -288,6 +357,11 @@ static void PrintPopulationSummary(
     Console.WriteLine($"Decompressed ADF payload: {population.AdfPayloadSizeBytes:N0} bytes");
     Console.WriteLine($"ADF version: {population.AdfVersion}");
     Console.WriteLine($"Animals decoded: {population.Animals.Count:N0}");
+
+    if (filters.HasAnimalFilters)
+    {
+        Console.WriteLine($"Filters: {filters.Describe()}");
+    }
 
     IEnumerable<PopulationSpeciesRecord> species = population.Species;
     if (!string.IsNullOrWhiteSpace(speciesFilter))
@@ -299,21 +373,29 @@ static void PrintPopulationSummary(
 
     var displayed = species
         .Where(item => item.Animals.Count > 0)
+        .Where(item => !filters.HasAnimalFilters || item.Animals.Any(filters.Matches))
         .ToArray();
 
     if (displayed.Length == 0)
     {
-        Console.WriteLine("No matching population species.");
+        Console.WriteLine(
+            filters.HasAnimalFilters
+                ? "No population animals match the selected filters."
+                : "No matching population species.");
         return;
     }
 
+    var totalMatches = displayed.Sum(item => item.Animals.Count(filters.Matches));
+    Console.WriteLine($"Matching animals: {totalMatches:N0}");
+
     Console.WriteLine();
-    Console.WriteLine("SPECIES                 GROUPS  TOTAL   MALE FEMALE  GO  DIA RARE   MAX WT  MAX SCORE");
-    Console.WriteLine("----------------------  ------  ------  ----- ------  --  --- ----  -------  ---------");
+    Console.WriteLine("SPECIES                 GROUPS  TOTAL  MATCH   MALE FEMALE  GO  DIA RARE   MAX WT  MAX SCORE");
+    Console.WriteLine("----------------------  ------  -----  -----  ----- ------  --  --- ----  -------  ---------");
 
     foreach (var item in displayed)
     {
-        var animals = item.Animals;
+        var allAnimals = item.Animals;
+        var animals = allAnimals.Where(filters.Matches).ToArray();
         var males = animals.Count(animal => animal.Gender == "male");
         var females = animals.Count(animal => animal.Gender == "female");
         var greatOnes = animals.Count(animal => animal.IsGreatOne);
@@ -324,22 +406,35 @@ static void PrintPopulationSummary(
 
         Console.WriteLine(
             $"{Truncate(item.Species.Replace('_', ' '), 22),-22}  " +
-            $"{item.Groups.Count,6}  {animals.Count,6}  {males,5} {females,6}  " +
-            $"{greatOnes,2}  {diamonds,3} {rareFurs,4}  {maxWeight,7:F2}  {maxScore,9:F2}");
+            $"{item.Groups.Count,6}  {allAnimals.Count,5}  {animals.Length,5}  " +
+            $"{males,5} {females,6}  {greatOnes,2}  {diamonds,3} {rareFurs,4}  " +
+            $"{maxWeight,7:F2}  {maxScore,9:F2}");
     }
 
     Console.WriteLine();
-    Console.WriteLine($"Top {topRecords} population record(s) per displayed species by saved score:");
+    Console.WriteLine(
+        filters.ShowAll
+            ? "All matching population records:"
+            : $"Top {topRecords} matching population record(s) per displayed species by saved score:");
 
     foreach (var item in displayed)
     {
         Console.WriteLine();
         Console.WriteLine(item.Species.Replace('_', ' ').ToUpperInvariant());
 
-        foreach (var animal in item.Animals
-                     .OrderByDescending(animal => animal.IsGreatOne)
-                     .ThenByDescending(animal => animal.Score)
-                     .Take(topRecords))
+        var records = item.Animals
+            .Where(filters.Matches)
+            .OrderByDescending(animal => animal.IsGreatOne)
+            .ThenByDescending(animal => animal.Score);
+
+        if (!filters.ShowAll)
+        {
+            records = records.Take(topRecords)
+                .OrderByDescending(animal => animal.IsGreatOne)
+                .ThenByDescending(animal => animal.Score);
+        }
+
+        foreach (var animal in records)
         {
             Console.WriteLine(
                 $"  G{animal.GroupIndex,-3} #{animal.AnimalIndex,-3} " +
