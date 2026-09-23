@@ -320,7 +320,7 @@ public partial class MainWindow : Window
             : value;
 
         return int.TryParse(
-            levelText.Trim(),
+            levelText.Trim().TrimStart('~'),
             out var level)
             ? level
             : 0;
@@ -712,10 +712,16 @@ public partial class MainWindow : Window
         SelectedAnimalTitle.Text =
             $"{animal.DisplaySpecies} · {animal.DistanceMeters:F0} m";
 
+        var levelText = animal.Difficulty.StartsWith(
+            "~",
+            StringComparison.Ordinal)
+            ? $"{animal.Difficulty} (weight estimate)"
+            : animal.Difficulty;
+
         SelectedAnimalDetails.Text =
             $"Identity : {animal.IdentityText}\n" +
             $"Gender   : {animal.Gender}\n" +
-            $"Level    : {animal.Difficulty}\n" +
+            $"Level    : {levelText}\n" +
             $"Trophy   : {animal.Trophy}\n" +
             $"Fur      : {animal.Fur} ({animal.FurRarity})\n" +
             $"Weight   : {animal.Weight:F2}\n" +
@@ -723,6 +729,73 @@ public partial class MainWindow : Window
             $"Health   : {animal.Health:F1}/{animal.MaxHealth:F1}\n" +
             $"XYZ      : {animal.X:F1}, {animal.Y:F1}, {animal.Z:F1}\n" +
             $"Seed     : {animal.VisualVariationSeed}";
+    }
+
+    private void ProbeDifficultyButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        var animal = Radar.SelectedAnimal
+            ?? LiveAnimalsGrid.SelectedItem as LiveAnimalView;
+
+        if (animal is null)
+        {
+            MessageBox.Show(
+                this,
+                "Select a loaded animal first.",
+                "Native difficulty probe",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            var report = _session.ProbeDifficulty(animal);
+            Clipboard.SetText(report);
+
+            var previewLines = report
+                .Split(
+                    Environment.NewLine,
+                    StringSplitOptions.None)
+                .Take(48)
+                .ToArray();
+            var preview = string.Join(
+                Environment.NewLine,
+                previewLines);
+
+            if (previewLines.Length <
+                report.Split(Environment.NewLine).Length)
+            {
+                preview +=
+                    Environment.NewLine +
+                    Environment.NewLine +
+                    "(Full report copied to clipboard.)";
+            }
+            else
+            {
+                preview +=
+                    Environment.NewLine +
+                    Environment.NewLine +
+                    "Copied to clipboard.";
+            }
+
+            MessageBox.Show(
+                this,
+                preview,
+                "Native difficulty probe",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                $"Difficulty probe failed: {ex.Message}",
+                "Native difficulty probe",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private void SetConnected()
