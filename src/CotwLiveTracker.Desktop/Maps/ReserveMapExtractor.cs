@@ -10,7 +10,7 @@ internal sealed record ExtractedReserveMap(
     int DxgiFormat,
     byte[] Bgra32);
 
-internal sealed class ReserveMapExtractor
+internal sealed class ReserveMapExtractor : IDisposable
 {
     private const int HighestMapZoom = 3;
     private const int MaxGridSize = 64;
@@ -161,6 +161,12 @@ internal sealed class ReserveMapExtractor
                 ((destinationY + row) * fullStride) + destinationX,
                 tile.Stride);
         }
+    }
+
+    public void Dispose()
+    {
+        _archives.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private static string TilePath(
