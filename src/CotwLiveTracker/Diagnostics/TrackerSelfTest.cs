@@ -88,6 +88,7 @@ internal static class TrackerSelfTest
             }
 
             TestPopulationRecordRecognition();
+            TestPopulationIdentityBridge();
 
             Console.WriteLine("Self-test passed.");
             return 0;
@@ -219,6 +220,96 @@ internal static class TrackerSelfTest
         {
             throw new InvalidOperationException(
                 $"Unexpected visual-seed probability {seedProbability}.");
+        }
+    }
+
+    private static void TestPopulationIdentityBridge()
+    {
+        var animal = Struct(new Dictionary<string, AdfNode>
+        {
+            ["Gender"] = Scalar((uint)1),
+            ["Weight"] = Scalar(93.59f),
+            ["Score"] = Scalar(245.17f),
+            ["IsGreatOne"] = Scalar((uint)0),
+            ["IsScripted"] = Scalar((uint)0),
+            ["VisualVariationSeed"] = Scalar(4278008639u),
+            ["Id"] = Scalar(0u),
+            ["MapPosition"] = Struct(new Dictionary<string, AdfNode>
+            {
+                ["X"] = Scalar(0f),
+                ["Y"] = Scalar(0f)
+            })
+        });
+
+        var group = Struct(new Dictionary<string, AdfNode>
+        {
+            ["Animals"] = Array([animal])
+        });
+
+        var speciesPopulation = Struct(new Dictionary<string, AdfNode>
+        {
+            ["Groups"] = Array([group])
+        });
+
+        var root = Struct(new Dictionary<string, AdfNode>
+        {
+            ["Populations"] = Array([speciesPopulation])
+        });
+
+        var document = new AdfDocument(
+            Version: 4,
+            Types: new Dictionary<uint, AdfTypeDefinition>(),
+            Instances: [],
+            RootValues: [root]);
+
+        var reserve = new ReservePopulationDefinition(
+            "synthetic",
+            "Synthetic Reserve",
+            ["whitetail_deer"]);
+
+        var species = PopulationFileReader.ParsePopulations(document, reserve);
+        var population = new PopulationReadResult(
+            "synthetic",
+            0,
+            0,
+            4,
+            "Synthetic Reserve",
+            species);
+        var record = population.Animals.Single();
+
+        var memory = new SparseMemoryReader();
+        var entityAddress = Ptr(0x0000010000010000L);
+        var recordAddress = Ptr(0x0000010000020000L);
+        var entityBytes = new byte[0x300];
+        BinaryPrimitives.WriteInt64LittleEndian(
+            entityBytes.AsSpan(0x40, sizeof(long)),
+            recordAddress.ToInt64());
+
+        memory.Add(entityAddress, entityBytes);
+        memory.Add(
+            recordAddress,
+            PopulationIdentityBridgeProbe.BuildStableSignature(record));
+
+        var live = new AnimalSnapshot(
+            "whitetail",
+            new Float3(10f, 20f, 30f),
+            100f,
+            100f,
+            100f,
+            entityAddress);
+
+        var result = PopulationIdentityBridgeProbe.Probe(
+            memory,
+            live,
+            population);
+
+        if (result.ResolvedAnimal is null ||
+            result.ResolvedAnimal.GroupIndex != 0 ||
+            result.ResolvedAnimal.AnimalIndex != 0 ||
+            !result.Matches.Any(match => match.Evidence == "stable-record"))
+        {
+            throw new InvalidOperationException(
+                "Population identity bridge failed to resolve synthetic stable record.");
         }
     }
 

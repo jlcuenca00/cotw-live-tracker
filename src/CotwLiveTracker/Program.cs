@@ -33,6 +33,8 @@ var difficultyFilterRaw = GetOption(args, "--difficulty");
 var furFilter = GetOption(args, "--fur");
 var sexFilter = GetOption(args, "--sex");
 var populationAll = HasFlag(args, "--population-all");
+var bridgeProbe = HasFlag(args, "--bridge-probe");
+var bridgeLimit = GetIntOption(args, "--bridge-limit", 8, 1, 64);
 
 int? difficultyFilter = null;
 if (!string.IsNullOrWhiteSpace(difficultyFilterRaw))
@@ -123,11 +125,11 @@ catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
     return 10;
 }
 
-if ((populationFilters.HasAnimalFilters || populationFilters.ShowAll) &&
+if ((populationFilters.HasAnimalFilters || populationFilters.ShowAll || bridgeProbe) &&
     populationPath is null)
 {
     Console.Error.WriteLine(
-        "Population filters require --population-reserve (or --population-file with --population-reserve).");
+        "Population filters/bridge probe require --population-reserve (or --population-file with --population-reserve).");
     return 10;
 }
 
@@ -137,7 +139,7 @@ if (watch && populationPath is not null)
     return 10;
 }
 
-Console.WriteLine("COTW Live Tracker v0.7");
+Console.WriteLine("COTW Live Tracker v0.8");
 Console.WriteLine($"Looking for process: {processName}.exe");
 
 using var process = GameProcessLocator.Find(processName);
@@ -256,6 +258,16 @@ try
                     speciesFilter,
                     populationTop,
                     populationFilters);
+
+                if (bridgeProbe)
+                {
+                    PrintIdentityBridgeProbe(
+                        memory,
+                        snapshot,
+                        population,
+                        speciesFilter,
+                        bridgeLimit);
+                }
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
             {
@@ -282,7 +294,7 @@ try
             Console.Clear();
         }
 
-        Console.WriteLine("COTW Live Tracker v0.7 - LIVE");
+        Console.WriteLine("COTW Live Tracker v0.8 - LIVE");
         Console.WriteLine($"Profile: {profile.Name}");
         PrintSnapshot(tracker.ReadSnapshot(), speciesFilter);
 
@@ -445,6 +457,126 @@ static void PrintPopulationSummary(
                 $"seed {animal.VisualVariationSeed,10}  id {animal.Id,10}");
         }
     }
+}
+
+static void PrintIdentityBridgeProbe(
+    IMemoryReader memory,
+    LiveSnapshot snapshot,
+    PopulationReadResult population,
+    string? speciesFilter,
+    int limit)
+{
+    IEnumerable<AnimalSnapshot> liveAnimals = snapshot.Animals;
+    if (!string.IsNullOrWhiteSpace(speciesFilter))
+    {
+        liveAnimals = liveAnimals.Where(animal =>
+            animal.Species.Contains(speciesFilter, StringComparison.OrdinalIgnoreCase) ||
+            speciesFilter.Contains(animal.Species, StringComparison.OrdinalIgnoreCase));
+    }
+
+    var selected = liveAnimals
+        .OrderBy(animal => animal.DistanceMeters)
+        .Take(limit)
+        .ToArray();
+
+    Console.WriteLine();
+    Console.WriteLine("IDENTITY BRIDGE PROBE");
+    Console.WriteLine(
+        "Read-only diagnostic: scans each loaded animal object and immediate pointers for saved-record signatures.");
+    Console.WriteLine($"Loaded animals selected: {selected.Length}/{snapshot.Animals.Count}");
+
+    if (selected.Length == 0)
+    {
+        Console.WriteLine("No loaded animals match the bridge probe selection.");
+        return;
+    }
+
+    var resolvedCount = 0;
+    foreach (var liveAnimal in selected)
+    {
+        var result = PopulationIdentityBridgeProbe.Probe(
+            memory,
+            liveAnimal,
+            population);
+
+        Console.WriteLine();
+        Console.WriteLine(
+            $"{liveAnimal.Species.ToUpperInvariant()}  " +
+            $"entity 0x{liveAnimal.Address.ToInt64():X}  " +
+            $"{liveAnimal.DistanceMeters:F0}m");
+
+        if (result.PopulationSpecies is null)
+        {
+            Console.WriteLine("  Population species mapping: unresolved");
+            continue;
+        }
+
+        Console.WriteLine($"  Population species: {result.PopulationSpecies}");
+        Console.WriteLine($"  Immediate pointer reads: {result.PointerReads}");
+
+        if (result.ResolvedAnimal is { } resolved)
+        {
+            resolvedCount++;
+            Console.WriteLine(
+                $"  RESOLVED -> G{resolved.GroupIndex} #{resolved.AnimalIndex} " +
+                $"{resolved.Gender} {resolved.DifficultyLabel} {resolved.Trophy} " +
+                $"wt {resolved.Weight:F2} score {resolved.Score:F2} " +
+                $"fur {resolved.FurName} seed {resolved.VisualVariationSeed}");
+
+            foreach (var match in result.Matches
+                         .Where(match =>
+                             match.Animal.SpeciesIndex == resolved.SpeciesIndex &&
+                             match.Animal.GroupIndex == resolved.GroupIndex &&
+                             match.Animal.AnimalIndex == resolved.AnimalIndex)
+                         .OrderBy(match => match.Evidence == "stable-record" ? 0 : 1)
+                         .Take(8))
+            {
+                Console.WriteLine(
+                    $"    evidence {match.Evidence,-19} {match.Path}");
+            }
+
+            continue;
+        }
+
+        var candidateGroups = result.Matches
+            .GroupBy(match => (
+                match.Animal.SpeciesIndex,
+                match.Animal.GroupIndex,
+                match.Animal.AnimalIndex))
+            .OrderByDescending(group => group.Any(match => match.Evidence == "stable-record"))
+            .ThenByDescending(group => group.Select(match => match.Evidence).Distinct().Count())
+            .Take(5)
+            .ToArray();
+
+        if (candidateGroups.Length == 0)
+        {
+            Console.WriteLine("  No population identity signature found in the probed object graph.");
+            continue;
+        }
+
+        Console.WriteLine(
+            $"  Unresolved: {candidateGroups.Length} candidate record(s) with partial evidence.");
+        foreach (var group in candidateGroups)
+        {
+            var animal = group.First().Animal;
+            var evidence = string.Join(
+                ", ",
+                group.Select(match => match.Evidence).Distinct());
+            Console.WriteLine(
+                $"    G{animal.GroupIndex} #{animal.AnimalIndex} " +
+                $"{animal.Gender} {animal.DifficultyLabel} {animal.Trophy} " +
+                $"wt {animal.Weight:F2} score {animal.Score:F2} " +
+                $"seed {animal.VisualVariationSeed} [{evidence}]");
+
+            foreach (var match in group.Take(3))
+            {
+                Console.WriteLine($"      {match.Path}");
+            }
+        }
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"Bridge resolved: {resolvedCount}/{selected.Length}");
 }
 
 static string Truncate(string value, int maxLength) =>
