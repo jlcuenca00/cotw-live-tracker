@@ -10,6 +10,8 @@ internal sealed record PopulationAnimalRecord(
     string Gender,
     float Weight,
     float Score,
+    int DifficultyLevel,
+    string DifficultyLabel,
     bool IsGreatOne,
     bool IsScripted,
     uint VisualVariationSeed,
@@ -203,6 +205,8 @@ internal static class PopulationFileReader
                 $"Invalid animal values in {species} group {groupIndex}, animal {animalIndex}.");
         }
 
+        var difficulty = PopulationDifficultyCatalog.Get(species, weight);
+
         return new PopulationAnimalRecord(
             species,
             speciesIndex,
@@ -211,6 +215,8 @@ internal static class PopulationFileReader
             gender,
             weight,
             score,
+            difficulty.Level,
+            difficulty.Label,
             greatOne,
             scripted,
             seed,
