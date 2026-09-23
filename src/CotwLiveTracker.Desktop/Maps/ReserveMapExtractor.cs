@@ -1,3 +1,4 @@
+using System.IO;
 namespace CotwLiveTracker.Desktop.Maps;
 
 internal sealed record ExtractedReserveMap(
