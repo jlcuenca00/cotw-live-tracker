@@ -3,10 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:CotwLiveTracker.Desktop.Controls"
         Title="COTW Live Tracker"
-        Width="1460"
-        Height="900"
-        MinWidth="1180"
-        MinHeight="720"
+        Width="1540"
+        Height="920"
+        MinWidth="1240"
+        MinHeight="760"
         WindowStartupLocation="CenterScreen">
     <Grid Background="{StaticResource AppBackground}">
         <Grid.RowDefinitions>
@@ -15,7 +15,7 @@
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0"
-                Background="#0D1218"
+                Background="#0D0F0C"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <Grid Margin="22,0">
@@ -25,21 +25,23 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="COTW LIVE TRACKER"
+                    <TextBlock Text="COTW TRACKER"
                                FontSize="20"
-                               FontWeight="Bold"/>
-                    <TextBlock Text="Read-only population scanner + live radar"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimary}"/>
+                    <TextBlock Text="LIVE RADAR  ·  POPULATION INTEL  ·  READ-ONLY"
                                Margin="0,3,0,0"
                                Foreground="{StaticResource TextSecondary}"
-                               FontSize="12"/>
+                               FontSize="11"
+                               FontWeight="SemiBold"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
                     <Border x:Name="StatusPill"
-                            Background="#3F1F2937"
-                            BorderBrush="#475569"
+                            Background="#332A2115"
+                            BorderBrush="#4C3A24"
                             BorderThickness="1"
                             CornerRadius="16"
                             Padding="12,6"
@@ -64,9 +66,10 @@
         </Border>
 
         <TabControl Grid.Row="1"
-                    Margin="16"
-                    x:Name="MainTabs">
-            <TabItem Header="Dashboard">
+                    Margin="12"
+                    x:Name="MainTabs"
+                    TabStripPlacement="Left">
+            <TabItem Header="DASHBOARD">
                 <Grid Margin="4,12,4,4">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -79,7 +82,7 @@
                         <Border Background="{StaticResource PanelBackground}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="12"
+                                CornerRadius="6"
                                 Padding="16"
                                 Margin="4">
                             <StackPanel>
@@ -96,7 +99,7 @@
                         <Border Background="{StaticResource PanelBackground}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="12"
+                                CornerRadius="6"
                                 Padding="16"
                                 Margin="4">
                             <StackPanel>
@@ -113,7 +116,7 @@
                         <Border Background="{StaticResource PanelBackground}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="12"
+                                CornerRadius="6"
                                 Padding="16"
                                 Margin="4">
                             <StackPanel>
@@ -131,7 +134,7 @@
                         <Border Background="{StaticResource PanelBackground}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="12"
+                                CornerRadius="6"
                                 Padding="16"
                                 Margin="4">
                             <StackPanel>
@@ -149,7 +152,7 @@
                         <Border Background="{StaticResource PanelBackground}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="12"
+                                CornerRadius="6"
                                 Padding="16"
                                 Margin="4">
                             <StackPanel>
@@ -174,7 +177,7 @@
                         <Border Background="{StaticResource PanelBackground}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="12"
+                                CornerRadius="6"
                                 Padding="14"
                                 Margin="4">
                             <DockPanel>
@@ -201,7 +204,7 @@
                                 Background="{StaticResource PanelBackground}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="12"
+                                CornerRadius="6"
                                 Padding="18"
                                 Margin="8,4,4,4">
                             <StackPanel>
@@ -243,7 +246,7 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Live Radar">
+            <TabItem Header="LIVE MAP">
                 <Grid Margin="4,12,4,4">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -254,7 +257,7 @@
                             Background="{StaticResource PanelBackground}"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1"
-                            CornerRadius="12"
+                            CornerRadius="6"
                             Padding="10"
                             Margin="4,0,4,8">
                         <WrapPanel VerticalAlignment="Center">
@@ -320,14 +323,14 @@
 
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.35*"/>
+                            <ColumnDefinition Width="1.65*"/>
                             <ColumnDefinition Width="1*"/>
                         </Grid.ColumnDefinitions>
 
                         <Border Background="{StaticResource PanelBackground}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="12"
+                                CornerRadius="6"
                                 Margin="4"
                                 Padding="12">
                             <Grid>
@@ -346,9 +349,10 @@
 
                                     <StackPanel VerticalAlignment="Center"
                                                 Margin="0,0,12,0">
-                                        <TextBlock Text="Live map"
-                                                   FontSize="16"
-                                                   FontWeight="SemiBold"/>
+                                        <TextBlock Text="LIVE MAP"
+                                                   FontSize="15"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource AccentBrush}"/>
                                         <TextBlock x:Name="MapModeStatusText"
                                                    Text="Relative radar fallback"
                                                    Foreground="{StaticResource TextSecondary}"
@@ -445,7 +449,7 @@
                             <Border Background="{StaticResource PanelBackground}"
                                     BorderBrush="{StaticResource BorderBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="12"
+                                    CornerRadius="6"
                                     Padding="12"
                                     Margin="0,0,0,8">
                                 <DockPanel>
@@ -491,7 +495,7 @@
                                     Background="{StaticResource PanelBackground}"
                                     BorderBrush="{StaticResource BorderBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="12"
+                                    CornerRadius="6"
                                     Padding="16">
                                 <StackPanel>
                                     <TextBlock Text="Selected animal"
@@ -542,7 +546,7 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Population Scanner">
+            <TabItem Header="POPULATION">
                 <Grid Margin="4,12,4,4">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -553,7 +557,7 @@
                     <Border Background="{StaticResource PanelBackground}"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1"
-                            CornerRadius="12"
+                            CornerRadius="6"
                             Padding="12"
                             Margin="4,4,4,8">
                         <WrapPanel VerticalAlignment="Center">
@@ -606,7 +610,7 @@
                             Background="{StaticResource PanelBackground}"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1"
-                            CornerRadius="12"
+                            CornerRadius="6"
                             Padding="8"
                             Margin="4">
                         <DataGrid x:Name="PopulationGrid"
@@ -629,7 +633,7 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Settings / Status">
+            <TabItem Header="STATUS">
                 <Grid Margin="4,12,4,4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -639,7 +643,7 @@
                     <Border Background="{StaticResource PanelBackground}"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1"
-                            CornerRadius="12"
+                            CornerRadius="6"
                             Padding="20"
                             Margin="4">
                         <StackPanel>
@@ -673,7 +677,7 @@
                             Background="{StaticResource PanelBackground}"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1"
-                            CornerRadius="12"
+                            CornerRadius="6"
                             Padding="20"
                             Margin="8,4,4,4">
                         <StackPanel>
