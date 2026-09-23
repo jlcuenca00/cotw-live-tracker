@@ -8,7 +8,7 @@ Build a live tracker that can display currently spawned animals, their positions
 
 ## Current status
 
-### v0.10 native desktop shell
+### v0.11 calibrated Layton map overlay
 
 The tracker can now:
 
@@ -39,9 +39,10 @@ The tracker can now:
 - run a targeted read-only identity probe against loaded animal objects and their immediate pointers;
 - read verified live weight, score and visual seed directly from Patch 9.3 animal entities;
 - join loaded entities to exact population records and enrich live rows with difficulty, trophy and fur;
-- launch a native WPF desktop app with dashboard, live radar, population scanner, filters, and patch/profile status.
+- launch a native WPF desktop app with dashboard, live radar, population scanner, filters, and patch/profile status;
+- overlay live animals and the player on a calibrated Layton Lake map exported from the user's own COTW installation.
 
-The CLI deliberately does not invent an "Uncommon" tier because rarity labels in game data are inconsistent across species. The graphical radar is **not implemented yet**.
+The CLI deliberately does not invent an "Uncommon" tier because rarity labels in game data are inconsistent across species.
 
 ## Desktop app
 
@@ -59,13 +60,45 @@ Current desktop features:
 - choose a reserve and load its active population file;
 - one-second live refresh;
 - dashboard counts for loaded/resolved/Diamond/Rare/Great One animals;
-- north-up relative radar using game world X/Z coordinates;
-- clickable radar markers and selected-animal detail panel;
+- calibrated Layton Lake actual-map overlay using absolute game world X/Z coordinates;
+- automatic fallback to the north-up relative radar when no compatible map image is installed;
+- clickable map/radar markers and selected-animal detail panel;
 - live animal table with difficulty, trophy, weight, score and fur;
 - full-reserve population scanner with species/trophy/difficulty/fur/sex/Rare/Great One filters;
 - runtime profile, SHA-256 and read-only access status.
 
-The radar is intentionally **relative** for v0.10. It does not yet place markers over a reserve map image because that requires a separately verified world-coordinate-to-map calibration.
+### Layton actual-map setup
+
+v0.11 includes a verified Layton world-to-map calibration, but deliberately does **not** redistribute the game's map artwork. Import the map image exported from your own COTW installation:
+
+1. Download a Windows DECA release from `kk49/deca`, unzip it, and run `deca_gui.exe`.
+2. In DECA use **File -> New Project**, select your `theHunterCotW_F.exe`, and let the first archive index complete.
+3. In the DIR view navigate to `textures/ui/map_reserve_1/zoom3/`.
+4. Select a tile in that map set, enable **Export Map**, choose **Full**, then click **EXTRACT**.
+5. DECA's map exporter stitches the highest-resolution map tiles into `deca.map/full.png`.
+6. In COTW Live Tracker open **Live Radar -> Load actual map** and select that `full.png`.
+
+The compatible Layton full image is the game's square 16x16 zoom-3 tile set (tiles 0-255 in row-major order). Cropped screenshots or web-guide maps are not calibration-compatible.
+
+The imported image is copied only to the user's local application-data folder and is never added to this repository.
+
+#### Layton calibration
+
+The transform maps game world `(X, Z)` directly to normalized image `(u, v)`:
+
+```text
+u = 0.000114888268968409 * X
+  - 0.0000000459197071221501 * Z
+  - 0.589623002016760
+
+v = 0.000000306147534157835 * X
+  + 0.000114541294189928 * Z
+  - 0.412792441489212
+```
+
+It was fit against ten Layton outpost correspondences and independently checked against the live camera location near Roonachee. The tiny cross-axis coefficients are retained so the calibration does not assume zero rotation.
+
+DECA and an independently implemented COTW map viewer were also used to verify that the full Layton map uses a square 16x16 highest-zoom tile grid with row-major tile indexing, matching DECA's `export_map` stitch order.
 
 ## Build
 
@@ -186,8 +219,8 @@ If the executable changes or those checks fail, the tracker stops instead of tru
 
 ## Roadmap
 
-1. Validate promoted live identity fields across more species/reserves.
-2. Calibrate reserve map images to world X/Z coordinates and upgrade the relative radar into a true map overlay.
+1. Validate the Layton actual-map overlay against the user's DECA-exported `full.png`.
+2. Add verified calibration profiles for the remaining reserves.
 3. Add cached/high-frequency refresh and marker filtering/highlighting controls.
 4. Add HM-focused herd tools and kill/respawn history.
 5. Package the desktop app as a normal Windows release.
@@ -206,3 +239,14 @@ Population-record field semantics and the active-save decompression layout were 
 https://github.com/Pure-Winter-hue/apc-pw
 
 The tracker remains read-only and does not use APC's population modification or live injection features. The ADF reader was implemented independently in C# from the documented structure semantics.
+
+
+### Map calibration research
+
+The full-map stitch order and COTW map asset paths were cross-checked against the MIT-licensed DECA project:
+
+https://github.com/kk49/deca
+
+Normalized Layton map-location geometry was independently cross-checked against the GPL-licensed COTW Companion project. No COTW Companion source code or map artwork is copied into this repository:
+
+https://github.com/janstehno/cotw-companion

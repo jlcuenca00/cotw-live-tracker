@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using CotwLiveTracker.Desktop.Maps;
+using Microsoft.Win32;
 using CotwLiveTracker.Population;
 
 namespace CotwLiveTracker.Desktop;
@@ -19,6 +21,11 @@ public partial class MainWindow : Window
         ReserveBox.SelectedItem = DesktopTrackerSession.Reserves
             .FirstOrDefault(reserve => reserve.Index == 1)
             ?? DesktopTrackerSession.Reserves.FirstOrDefault();
+
+        if (ReserveBox.SelectedItem is ReserveChoice initialReserve)
+        {
+            ConfigureReserveMap(initialReserve.Index);
+        }
 
         PopulationTrophyFilter.ItemsSource = new[]
         {
@@ -64,6 +71,7 @@ public partial class MainWindow : Window
         try
         {
             _session.Attach(reserve.Index);
+            ConfigureReserveMap(reserve.Index);
             SetConnected();
             UpdateStaticSessionUi();
             ApplyPopulationFilters();
@@ -104,6 +112,8 @@ public partial class MainWindow : Window
 
             Radar.Animals = animals;
             Radar.MaxRangeMeters = RadarRangeSlider.Value;
+            Radar.CameraX = snapshot.CameraPosition.X;
+            Radar.CameraZ = snapshot.CameraPosition.Z;
 
             LoadedCountText.Text = animals.Count.ToString("N0");
             ResolvedCountText.Text = animals.Count(animal => animal.GroupIndex is not null).ToString("N0");
@@ -227,6 +237,111 @@ public partial class MainWindow : Window
         PopulationMatchText.Text =
             $"{rows.Length:N0} matches / {_session.Population.Animals.Count:N0} total";
     }
+
+    private void LoadMapImageButton_Click(object sender, RoutedEventArgs e)
+    {
+        var reserve = _session.Reserve
+            ?? ReserveBox.SelectedItem as ReserveChoice;
+
+        if (reserve is null)
+        {
+            MessageBox.Show(
+                this,
+                "Select a reserve first.",
+                "COTW Live Tracker",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var calibration = ReserveMapCalibrationCatalog.Get(reserve.Index);
+        if (calibration is null)
+        {
+            MessageBox.Show(
+                this,
+                "This reserve does not have a verified world-to-map calibration yet.",
+                "COTW Live Tracker",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var dialog = new OpenFileDialog
+        {
+            Title = $"Load {reserve.Name} map image",
+            Filter = "Map images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var stored = ReserveMapImageStore.Import(
+                reserve.Index,
+                dialog.FileName);
+            Radar.MapCalibration = calibration;
+            Radar.MapImage = ReserveMapImageStore.Load(stored);
+            MapModeStatusText.Text =
+                $"{reserve.Name} · calibrated actual-map mode";
+            LoadMapImageButton.Content = "Replace map";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                $"Could not load the map image: {ex.Message}",
+                "COTW Live Tracker",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    private void ConfigureReserveMap(int reserveIndex)
+    {
+        var calibration = ReserveMapCalibrationCatalog.Get(reserveIndex);
+        Radar.MapCalibration = calibration;
+        Radar.MapImage = null;
+
+        if (calibration is null)
+        {
+            MapModeStatusText.Text =
+                "No verified calibration yet · relative radar fallback";
+            LoadMapImageButton.IsEnabled = false;
+            LoadMapImageButton.Content = "Load actual map";
+            return;
+        }
+
+        LoadMapImageButton.IsEnabled = true;
+        var mapPath = ReserveMapImageStore.Find(reserveIndex);
+        if (mapPath is null)
+        {
+            MapModeStatusText.Text =
+                $"{calibration.ReserveName} calibrated · load exported map image";
+            LoadMapImageButton.Content = "Load actual map";
+            return;
+        }
+
+        try
+        {
+            Radar.MapImage = ReserveMapImageStore.Load(mapPath);
+            MapModeStatusText.Text =
+                $"{calibration.ReserveName} · calibrated actual-map mode";
+            LoadMapImageButton.Content = "Replace map";
+        }
+        catch (Exception ex)
+        {
+            Radar.MapImage = null;
+            MapModeStatusText.Text =
+                $"Saved map failed to load · {ex.Message}";
+            LoadMapImageButton.Content = "Load actual map";
+        }
+    }
+
 
     private void RadarRangeSlider_ValueChanged(
         object sender,
