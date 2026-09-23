@@ -276,7 +276,7 @@ public partial class MainWindow : Window
         {
             var result = await Task.Run(() =>
             {
-                var extractor = new ReserveMapExtractor(
+                using var extractor = new ReserveMapExtractor(
                     gameDirectory,
                     progress.Report);
                 var installed = extractor
