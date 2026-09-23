@@ -53,7 +53,8 @@
                     <ComboBox x:Name="ReserveBox"
                               Width="260"
                               Margin="0,0,10,0"
-                              DisplayMemberPath="Name"/>
+                              DisplayMemberPath="Name"
+                              SelectionChanged="ReserveBox_SelectionChanged"/>
 
                     <Button x:Name="AttachButton"
                             Content="Attach / Reload"
@@ -261,10 +262,10 @@
                                        Foreground="{StaticResource TextSecondary}"
                                        VerticalAlignment="Center"
                                        Margin="4,0,5,0"/>
-                            <TextBox x:Name="LiveSpeciesFilter"
-                                     Width="120"
-                                     Margin="0,2,8,2"
-                                     ToolTip="Species contains..."/>
+                            <ComboBox x:Name="LiveSpeciesFilter"
+                                      Width="160"
+                                      Margin="0,2,8,2"
+                                      ToolTip="Species available on the selected reserve"/>
 
                             <TextBlock Text="Trophy"
                                        Foreground="{StaticResource TextSecondary}"
@@ -408,24 +409,24 @@
                                             Click="MapCenterPlayerButton_Click"
                                             ToolTip="Center the map on the live player position"/>
 
-                                    <TextBlock Text="Range"
+                                    <Button x:Name="FollowPlayerButton"
+                                            Content="Follow player"
+                                            Padding="9,5"
+                                            Margin="2"
+                                            Click="FollowPlayerButton_Click"
+                                            ToolTip="Continuously keep the live player centered"/>
+                                    <Button x:Name="StopFollowingButton"
+                                            Content="Stop"
+                                            Padding="9,5"
+                                            Margin="2"
+                                            IsEnabled="False"
+                                            Click="StopFollowingButton_Click"
+                                            ToolTip="Return to free map navigation"/>
+                                    <TextBlock x:Name="FollowingStatusText"
+                                               Text="Free navigation"
                                                Foreground="{StaticResource TextSecondary}"
                                                VerticalAlignment="Center"
-                                               Margin="2,0,5,0"/>
-                                    <Slider x:Name="RadarRangeSlider"
-                                            Width="105"
-                                            Minimum="250"
-                                            Maximum="1500"
-                                            Value="1000"
-                                            TickFrequency="250"
-                                            IsSnapToTickEnabled="True"
-                                            VerticalAlignment="Center"
-                                            ValueChanged="RadarRangeSlider_ValueChanged"/>
-                                    <TextBlock x:Name="RadarRangeText"
-                                               Text="1000 m"
-                                               Width="58"
-                                               Margin="7,0,0,0"
-                                               VerticalAlignment="Center"/>
+                                               Margin="8,0,2,0"/>
                                 </WrapPanel>
 
                                 <controls:RadarControl x:Name="Radar"
@@ -471,11 +472,16 @@
                                               HorizontalScrollBarVisibility="Auto">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Dist" Binding="{Binding DistanceText}" Width="70"/>
-                                            <DataGridTextColumn Header="Species" Binding="{Binding DisplaySpecies}" Width="110"/>
-                                            <DataGridTextColumn Header="Level ~" Binding="{Binding Difficulty}" Width="95"/>
-                                            <DataGridTextColumn Header="Trophy" Binding="{Binding Trophy}" Width="75"/>
-                                            <DataGridTextColumn Header="Fur" Binding="{Binding Fur}" Width="95"/>
-                                            <DataGridTextColumn Header="Score" Binding="{Binding ScoreText}" Width="65"/>
+                                            <DataGridTextColumn Header="Species" Binding="{Binding DisplaySpecies}" Width="125"/>
+                                            <DataGridTextColumn Header="Sex" Binding="{Binding Gender}" Width="70"/>
+                                            <DataGridTextColumn Header="Level ~" Binding="{Binding Difficulty}" Width="100"/>
+                                            <DataGridTextColumn Header="Trophy" Binding="{Binding Trophy}" Width="85"/>
+                                            <DataGridTextColumn Header="Weight" Binding="{Binding WeightText}" Width="78"/>
+                                            <DataGridTextColumn Header="Score" Binding="{Binding ScoreText}" Width="72"/>
+                                            <DataGridTextColumn Header="Fur" Binding="{Binding Fur}" Width="110"/>
+                                            <DataGridTextColumn Header="Rarity" Binding="{Binding FurRarity}" Width="82"/>
+                                            <DataGridTextColumn Header="Health" Binding="{Binding HealthText}" Width="82"/>
+                                            <DataGridTextColumn Header="Identity" Binding="{Binding IdentityText}" Width="105"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </DockPanel>
@@ -502,12 +508,21 @@
                                                    FontSize="20"
                                                    FontWeight="Bold"
                                                    VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1"
-                                                Content="Probe level"
-                                                Padding="10,6"
-                                                Margin="10,0,0,0"
-                                                Click="ProbeDifficultyButton_Click"
-                                                ToolTip="Read-only scan of the selected live animal for native difficulty candidates."/>
+                                        <StackPanel Grid.Column="1"
+                                                    Orientation="Horizontal"
+                                                    Margin="10,0,0,0">
+                                            <Button x:Name="FollowSelectedAnimalButton"
+                                                    Content="Follow animal"
+                                                    Padding="10,6"
+                                                    Margin="0,0,6,0"
+                                                    IsEnabled="False"
+                                                    Click="FollowSelectedAnimalButton_Click"
+                                                    ToolTip="Continuously keep this animal centered on the live map."/>
+                                            <Button Content="Probe level"
+                                                    Padding="10,6"
+                                                    Click="ProbeDifficultyButton_Click"
+                                                    ToolTip="Read-only scan of the selected live animal for native difficulty candidates."/>
+                                        </StackPanel>
                                     </Grid>
                                     <TextBlock Text="~ = weight-derived estimate; it can differ from the game's native level."
                                                Margin="0,7,0,0"
@@ -542,10 +557,10 @@
                             Padding="12"
                             Margin="4,4,4,8">
                         <WrapPanel VerticalAlignment="Center">
-                            <TextBox x:Name="PopulationSpeciesFilter"
-                                     Width="150"
-                                     Margin="4"
-                                     ToolTip="Species contains..."/>
+                            <ComboBox x:Name="PopulationSpeciesFilter"
+                                      Width="170"
+                                      Margin="4"
+                                      ToolTip="Species available on the selected reserve"/>
                             <ComboBox x:Name="PopulationTrophyFilter"
                                       Width="125"
                                       Margin="4"/>

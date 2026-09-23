@@ -5,6 +5,13 @@ using CotwLiveTracker.Desktop.Maps;
 
 namespace CotwLiveTracker.Desktop.Controls;
 
+public enum RadarFollowMode
+{
+    None,
+    Player,
+    Animal
+}
+
 public sealed class RadarControl : FrameworkElement
 {
     private static readonly Brush BackgroundBrush =
@@ -43,7 +50,6 @@ public sealed class RadarControl : FrameworkElement
     private readonly List<(Point Point, LiveAnimalView Animal)> _markers = [];
     private IReadOnlyList<LiveAnimalView> _animals = [];
     private LiveAnimalView? _selectedAnimal;
-    private double _maxRangeMeters = 1000d;
     private ImageSource? _mapImage;
     private ReserveMapCalibration? _mapCalibration;
     private double _cameraX;
@@ -55,9 +61,14 @@ public sealed class RadarControl : FrameworkElement
     private Vector _panAtDragStart;
     private bool _isDragging;
     private bool _dragMoved;
+    private RadarFollowMode _followMode;
+    private nint? _followedAnimalAddress;
+    private LiveAnimalView? _followedAnimal;
 
     public Action<LiveAnimalView>? AnimalSelected { get; set; }
     public Action<double>? MapZoomChanged { get; set; }
+    public Action? FollowModeChanged { get; set; }
+    public Action? FollowTargetLost { get; set; }
 
     public IReadOnlyList<LiveAnimalView> Animals
     {
@@ -65,16 +76,6 @@ public sealed class RadarControl : FrameworkElement
         set
         {
             _animals = value ?? [];
-            InvalidateVisual();
-        }
-    }
-
-    public double MaxRangeMeters
-    {
-        get => _maxRangeMeters;
-        set
-        {
-            _maxRangeMeters = Math.Clamp(value, 100d, 2000d);
             InvalidateVisual();
         }
     }
@@ -106,6 +107,8 @@ public sealed class RadarControl : FrameworkElement
         MapCalibration is not null;
 
     public double MapZoom => _mapZoom;
+    public RadarFollowMode FollowMode => _followMode;
+    public LiveAnimalView? FollowedAnimal => _followedAnimal;
 
     public double CameraX
     {
@@ -145,6 +148,7 @@ public sealed class RadarControl : FrameworkElement
 
     public void ResetMapView()
     {
+        StopFollowing();
         _mapZoom = MinimumMapZoom;
         _mapPan = default;
         MapZoomChanged?.Invoke(_mapZoom);
@@ -152,6 +156,102 @@ public sealed class RadarControl : FrameworkElement
     }
 
     public void CenterOnPlayer()
+    {
+        StopFollowing();
+        CenterOnWorld(CameraX, CameraZ, ensureTrackingZoom: true);
+    }
+
+    public bool StartFollowingPlayer()
+    {
+        if (!IsMapMode)
+        {
+            return false;
+        }
+
+        _followMode = RadarFollowMode.Player;
+        _followedAnimalAddress = null;
+        _followedAnimal = null;
+        CenterOnWorld(CameraX, CameraZ, ensureTrackingZoom: true);
+        FollowModeChanged?.Invoke();
+        return true;
+    }
+
+    public bool StartFollowingAnimal(LiveAnimalView? animal)
+    {
+        if (!IsMapMode || animal is null)
+        {
+            return false;
+        }
+
+        _followMode = RadarFollowMode.Animal;
+        _followedAnimalAddress = animal.Address;
+        _followedAnimal = animal;
+        CenterOnWorld(animal.X, animal.Z, ensureTrackingZoom: true);
+        FollowModeChanged?.Invoke();
+        return true;
+    }
+
+    public void StopFollowing()
+    {
+        if (_followMode == RadarFollowMode.None &&
+            _followedAnimalAddress is null &&
+            _followedAnimal is null)
+        {
+            return;
+        }
+
+        _followMode = RadarFollowMode.None;
+        _followedAnimalAddress = null;
+        _followedAnimal = null;
+        FollowModeChanged?.Invoke();
+    }
+
+    public void RefreshFollowing(IReadOnlyList<LiveAnimalView> loadedAnimals)
+    {
+        if (!IsMapMode)
+        {
+            if (_followMode != RadarFollowMode.None)
+            {
+                StopFollowing();
+            }
+
+            return;
+        }
+
+        if (_followMode == RadarFollowMode.Player)
+        {
+            CenterOnWorld(CameraX, CameraZ, ensureTrackingZoom: false);
+            return;
+        }
+
+        if (_followMode != RadarFollowMode.Animal ||
+            _followedAnimalAddress is null)
+        {
+            return;
+        }
+
+        var target = loadedAnimals.FirstOrDefault(
+            animal => animal.Address == _followedAnimalAddress.Value);
+
+        if (target is null)
+        {
+            _followMode = RadarFollowMode.None;
+            _followedAnimalAddress = null;
+            _followedAnimal = null;
+            FollowModeChanged?.Invoke();
+            FollowTargetLost?.Invoke();
+            InvalidateVisual();
+            return;
+        }
+
+        _followedAnimal = target;
+        CenterOnWorld(target.X, target.Z, ensureTrackingZoom: false);
+    }
+
+    private void CenterOnWorld(
+        double worldX,
+        double worldZ,
+        bool ensureTrackingZoom)
     {
         if (!IsMapMode ||
             ActualWidth <= 0d ||
@@ -162,8 +262,8 @@ public sealed class RadarControl : FrameworkElement
 
         var calibration = MapCalibration!;
         var normalized = calibration.WorldToNormalized(
-            CameraX,
-            CameraZ);
+            worldX,
+            worldZ);
 
         var fitted = FitImageRect(
             MapImage!.Width,
@@ -172,12 +272,13 @@ public sealed class RadarControl : FrameworkElement
             ActualHeight,
             10d);
         var viewCenter = ViewCenter();
-        var basePlayer = NormalizedToPoint(
+        var baseTarget = NormalizedToPoint(
             normalized,
             fitted);
-        var baseVector = basePlayer - viewCenter;
+        var baseVector = baseTarget - viewCenter;
 
-        if (_mapZoom <= 1.01d)
+        if (ensureTrackingZoom &&
+            _mapZoom <= 1.01d)
         {
             _mapZoom = 2.5d;
             MapZoomChanged?.Invoke(_mapZoom);
@@ -341,12 +442,6 @@ public sealed class RadarControl : FrameworkElement
 
         foreach (var animal in Animals)
         {
-            if (animal.DistanceMeters >
-                MaxRangeMeters)
-            {
-                continue;
-            }
-
             var normalized =
                 calibration.WorldToNormalized(
                     animal.X,
@@ -409,6 +504,16 @@ public sealed class RadarControl : FrameworkElement
                 2d -
             36d);
 
+        var displayRange = Math.Max(
+            250d,
+            Animals
+                .Select(animal => Math.Sqrt(
+                    (animal.RelativeX * animal.RelativeX) +
+                    (animal.RelativeZ * animal.RelativeZ)))
+                .DefaultIfEmpty(0d)
+                .Max() *
+            1.08d);
+
         var gridPen =
             new Pen(
                 GridBrush,
@@ -428,7 +533,7 @@ public sealed class RadarControl : FrameworkElement
 
             DrawLabel(
                 drawingContext,
-                $"{MaxRangeMeters * ratio:F0}m",
+                $"{displayRange * ratio:F0}m",
                 new Point(
                     center.X + 6d,
                     center.Y -
@@ -471,34 +576,17 @@ public sealed class RadarControl : FrameworkElement
             5d,
             5d);
 
-        if (MaxRangeMeters <= 0d)
-        {
-            return;
-        }
-
         foreach (var animal in Animals)
         {
-            var planarDistance = Math.Sqrt(
-                (animal.RelativeX *
-                 animal.RelativeX) +
-                (animal.RelativeZ *
-                 animal.RelativeZ));
-
-            if (planarDistance >
-                MaxRangeMeters)
-            {
-                continue;
-            }
-
             var point =
                 new Point(
                     center.X +
                     (animal.RelativeX /
-                     MaxRangeMeters *
+                     displayRange *
                      radius),
                     center.Y -
                     (animal.RelativeZ /
-                     MaxRangeMeters *
+                     displayRange *
                      radius));
 
             DrawAnimalMarker(
@@ -635,6 +723,11 @@ public sealed class RadarControl : FrameworkElement
 
         if (delta.Length > 3d)
         {
+            if (!_dragMoved)
+            {
+                StopFollowing();
+            }
+
             _dragMoved = true;
         }
 
@@ -743,6 +836,20 @@ public sealed class RadarControl : FrameworkElement
 
         MapZoomChanged?.Invoke(
             _mapZoom);
+
+        if (_followMode == RadarFollowMode.Player)
+        {
+            CenterOnWorld(CameraX, CameraZ, ensureTrackingZoom: false);
+        }
+        else if (_followMode == RadarFollowMode.Animal &&
+                 _followedAnimal is not null)
+        {
+            CenterOnWorld(
+                _followedAnimal.X,
+                _followedAnimal.Z,
+                ensureTrackingZoom: false);
+        }
+
         InvalidateVisual();
     }
 

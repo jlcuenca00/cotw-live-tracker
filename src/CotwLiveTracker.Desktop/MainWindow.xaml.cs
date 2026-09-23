@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using CotwLiveTracker.Desktop.Controls;
 using CotwLiveTracker.Desktop.Maps;
 using Microsoft.Win32;
 using CotwLiveTracker.Population;
@@ -33,6 +34,7 @@ public partial class MainWindow : Window
         if (ReserveBox.SelectedItem is ReserveChoice initialReserve)
         {
             ConfigureReserveMap(initialReserve.Index);
+            UpdateSpeciesFilters(initialReserve.Index);
         }
 
         PopulationTrophyFilter.ItemsSource = new[]
@@ -70,6 +72,15 @@ public partial class MainWindow : Window
         {
             MapZoomText.Text = $"{zoom * 100d:F0}%";
         };
+        Radar.FollowModeChanged = UpdateFollowUi;
+        Radar.FollowTargetLost = () =>
+        {
+            UpdateFollowUi();
+            FollowingStatusText.Text = "Target no longer loaded";
+            FollowingStatusText.Foreground =
+                (Brush)FindResource("WarnBrush");
+        };
+        UpdateFollowUi();
 
         _refreshTimer = new DispatcherTimer
         {
@@ -99,6 +110,7 @@ public partial class MainWindow : Window
         {
             _session.Attach(reserve.Index);
             ConfigureReserveMap(reserve.Index);
+            UpdateSpeciesFilters(reserve.Index);
             SetConnected();
             UpdateStaticSessionUi();
             ApplyPopulationFilters();
@@ -136,14 +148,15 @@ public partial class MainWindow : Window
             _latestLiveAnimals = animals;
 
             DashboardAnimalsGrid.ItemsSource = animals.Take(10).ToArray();
-            ApplyLiveFilters(animals);
 
-            Radar.MaxRangeMeters = RadarRangeSlider.Value;
             Radar.CameraX = snapshot.CameraPosition.X;
             Radar.CameraZ = snapshot.CameraPosition.Z;
+            ApplyLiveFilters(animals);
+            Radar.RefreshFollowing(animals);
 
             if (_centerMapOnNextSnapshot &&
-                Radar.IsMapMode)
+                Radar.IsMapMode &&
+                Radar.FollowMode == RadarFollowMode.None)
             {
                 Radar.CenterOnPlayer();
                 _centerMapOnNextSnapshot = false;
@@ -169,6 +182,10 @@ public partial class MainWindow : Window
                 if (replacement is not null)
                 {
                     ShowSelectedAnimal(replacement);
+                }
+                else
+                {
+                    ClearSelectedAnimal();
                 }
             }
         }
@@ -198,12 +215,56 @@ public partial class MainWindow : Window
                 : _session.ExecutableSha256;
     }
 
+    private void ReserveBox_SelectionChanged(
+        object sender,
+        SelectionChangedEventArgs e)
+    {
+        if (ReserveBox.SelectedItem is ReserveChoice reserve)
+        {
+            UpdateSpeciesFilters(reserve.Index);
+        }
+    }
+
+    private void UpdateSpeciesFilters(int reserveIndex)
+    {
+        var species = new[] { "All" }
+            .Concat(DesktopTrackerSession.SpeciesForReserve(reserveIndex))
+            .ToArray();
+
+        SetComboItems(LiveSpeciesFilter, species);
+        SetComboItems(PopulationSpeciesFilter, species);
+    }
+
+    private static void SetComboItems(
+        ComboBox combo,
+        IReadOnlyList<string> items)
+    {
+        var previous = combo.SelectedItem as string;
+        combo.ItemsSource = items;
+
+        combo.SelectedItem =
+            previous is not null &&
+            items.Contains(previous, StringComparer.OrdinalIgnoreCase)
+                ? items.First(item =>
+                    string.Equals(
+                        item,
+                        previous,
+                        StringComparison.OrdinalIgnoreCase))
+                : items.FirstOrDefault();
+
+        if (combo.SelectedIndex < 0 &&
+            items.Count > 0)
+        {
+            combo.SelectedIndex = 0;
+        }
+    }
+
     private void ApplyLiveFilters_Click(object sender, RoutedEventArgs e) =>
         ApplyLiveFilters(_latestLiveAnimals);
 
     private void ClearLiveFilters_Click(object sender, RoutedEventArgs e)
     {
-        LiveSpeciesFilter.Text = "";
+        LiveSpeciesFilter.SelectedIndex = 0;
         LiveTrophyFilter.SelectedIndex = 0;
         LiveDifficultyFilter.SelectedIndex = 0;
         LiveFurFilter.Text = "";
@@ -216,7 +277,15 @@ public partial class MainWindow : Window
     private void ApplyLiveFilters(
         IReadOnlyList<LiveAnimalView> animals)
     {
-        var species = LiveSpeciesFilter.Text.Trim();
+        var species = LiveSpeciesFilter.SelectedItem as string;
+        if (string.Equals(
+                species,
+                "All",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            species = null;
+        }
+
         var fur = LiveFurFilter.Text.Trim();
 
         var trophy = LiveTrophyFilter.SelectedItem as string;
@@ -297,12 +366,7 @@ public partial class MainWindow : Window
             !filtered.Any(animal =>
                 animal.Address == selected.Address))
         {
-            Radar.SelectedAnimal = null;
-            LiveAnimalsGrid.SelectedItem = null;
-            SelectedAnimalTitle.Text =
-                "Click a radar marker or live row";
-            SelectedAnimalDetails.Text =
-                "Distance, identity, score, fur and XYZ will appear here.";
+            ClearSelectedAnimal();
         }
     }
 
@@ -331,7 +395,7 @@ public partial class MainWindow : Window
 
     private void ClearPopulationFilters_Click(object sender, RoutedEventArgs e)
     {
-        PopulationSpeciesFilter.Text = "";
+        PopulationSpeciesFilter.SelectedIndex = 0;
         PopulationTrophyFilter.SelectedIndex = 0;
         PopulationDifficultyFilter.SelectedIndex = 0;
         PopulationFurFilter.Text = "";
@@ -382,7 +446,15 @@ public partial class MainWindow : Window
             Sex: sex?.ToLowerInvariant(),
             ShowAll: true);
 
-        var species = PopulationSpeciesFilter.Text.Trim();
+        var species = PopulationSpeciesFilter.SelectedItem as string;
+        if (string.Equals(
+                species,
+                "All",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            species = null;
+        }
+
         var rows = _session.Population.Animals
             .Where(filters.Matches)
             .Where(animal =>
@@ -701,19 +773,6 @@ public partial class MainWindow : Window
         RoutedEventArgs e) =>
         Radar.CenterOnPlayer();
 
-    private void RadarRangeSlider_ValueChanged(
-        object sender,
-        RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (Radar is null || RadarRangeText is null)
-        {
-            return;
-        }
-
-        Radar.MaxRangeMeters = e.NewValue;
-        RadarRangeText.Text = $"{e.NewValue:F0} m";
-    }
-
     private void LiveAnimalsGrid_SelectionChanged(
         object sender,
         SelectionChangedEventArgs e)
@@ -724,7 +783,14 @@ public partial class MainWindow : Window
         }
 
         Radar.SelectedAnimal = animal;
+
+        if (Radar.FollowMode == RadarFollowMode.Animal)
+        {
+            Radar.StartFollowingAnimal(animal);
+        }
+
         ShowSelectedAnimal(animal);
+        UpdateFollowUi();
     }
 
     private void SelectLiveAnimal(LiveAnimalView animal)
@@ -736,6 +802,7 @@ public partial class MainWindow : Window
 
     private void ShowSelectedAnimal(LiveAnimalView animal)
     {
+        FollowSelectedAnimalButton.IsEnabled = Radar.IsMapMode;
         SelectedAnimalTitle.Text =
             $"{animal.DisplaySpecies} · {animal.DistanceMeters:F0} m";
 
@@ -756,6 +823,121 @@ public partial class MainWindow : Window
             $"Health   : {animal.Health:F1}/{animal.MaxHealth:F1}\n" +
             $"XYZ      : {animal.X:F1}, {animal.Y:F1}, {animal.Z:F1}\n" +
             $"Seed     : {animal.VisualVariationSeed}";
+
+        UpdateFollowUi();
+    }
+
+    private void ClearSelectedAnimal()
+    {
+        Radar.SelectedAnimal = null;
+        LiveAnimalsGrid.SelectedItem = null;
+        FollowSelectedAnimalButton.IsEnabled = false;
+        SelectedAnimalTitle.Text =
+            "Click a radar marker or live row";
+        SelectedAnimalDetails.Text =
+            "Distance, identity, score, fur and XYZ will appear here.";
+        UpdateFollowUi();
+    }
+
+    private void FollowPlayerButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (Radar.FollowMode == RadarFollowMode.Player)
+        {
+            Radar.StopFollowing();
+            return;
+        }
+
+        if (!Radar.StartFollowingPlayer())
+        {
+            FollowingStatusText.Text =
+                "Following requires a calibrated reserve map";
+            FollowingStatusText.Foreground =
+                (Brush)FindResource("WarnBrush");
+        }
+    }
+
+    private void FollowSelectedAnimalButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (Radar.SelectedAnimal is not { } animal)
+        {
+            return;
+        }
+
+        if (Radar.FollowMode == RadarFollowMode.Animal &&
+            Radar.FollowedAnimal?.Address == animal.Address)
+        {
+            Radar.StopFollowing();
+            return;
+        }
+
+        if (!Radar.StartFollowingAnimal(animal))
+        {
+            FollowingStatusText.Text =
+                "Following requires a calibrated reserve map";
+            FollowingStatusText.Foreground =
+                (Brush)FindResource("WarnBrush");
+        }
+    }
+
+    private void StopFollowingButton_Click(
+        object sender,
+        RoutedEventArgs e) =>
+        Radar.StopFollowing();
+
+    private void UpdateFollowUi()
+    {
+        if (FollowingStatusText is null ||
+            FollowPlayerButton is null ||
+            FollowSelectedAnimalButton is null ||
+            StopFollowingButton is null)
+        {
+            return;
+        }
+
+        var accent = (Brush)FindResource("AccentBrush");
+        var secondary = (Brush)FindResource("TextSecondary");
+
+        FollowPlayerButton.Content =
+            Radar.FollowMode == RadarFollowMode.Player
+                ? "Following player"
+                : "Follow player";
+
+        StopFollowingButton.IsEnabled =
+            Radar.FollowMode != RadarFollowMode.None;
+
+        var selected = Radar.SelectedAnimal;
+        FollowSelectedAnimalButton.IsEnabled =
+            Radar.IsMapMode &&
+            selected is not null;
+        FollowSelectedAnimalButton.Content =
+            Radar.FollowMode == RadarFollowMode.Animal &&
+            selected is not null &&
+            Radar.FollowedAnimal?.Address == selected.Address
+                ? "Following"
+                : "Follow animal";
+
+        switch (Radar.FollowMode)
+        {
+            case RadarFollowMode.Player:
+                FollowingStatusText.Text = "Following: player";
+                FollowingStatusText.Foreground = accent;
+                break;
+
+            case RadarFollowMode.Animal when Radar.FollowedAnimal is { } animal:
+                FollowingStatusText.Text =
+                    $"Following: {animal.DisplaySpecies} · {animal.Gender} · {animal.Difficulty}";
+                FollowingStatusText.Foreground = accent;
+                break;
+
+            default:
+                FollowingStatusText.Text = "Free navigation";
+                FollowingStatusText.Foreground = secondary;
+                break;
+        }
     }
 
     private void ProbeDifficultyButton_Click(

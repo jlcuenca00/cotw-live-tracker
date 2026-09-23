@@ -23,6 +23,13 @@ internal sealed class DesktopTrackerSession : IDisposable
             .Select(item => new ReserveChoice(item.Index, item.Reserve.DisplayName))
             .ToArray();
 
+    public static IReadOnlyList<string> SpeciesForReserve(int reserveIndex) =>
+        PopulationReserveCatalog.Get(reserveIndex)
+            .Species
+            .Select(species => species.Replace('_', ' '))
+            .OrderBy(species => species, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
     public bool IsAttached =>
         _process is not null &&
         !_process.HasExited &&
