@@ -103,6 +103,7 @@ internal static class TrackerSelfTest
 
             TestPopulationRecordRecognition();
             TestPopulationIdentityBridge();
+            TestDifficultyMemoryProbe();
 
             Console.WriteLine("Self-test passed.");
             return 0;
@@ -111,6 +112,34 @@ internal static class TrackerSelfTest
         {
             Console.Error.WriteLine($"Self-test failed: {ex}");
             return 1;
+        }
+    }
+
+    private static void TestDifficultyMemoryProbe()
+    {
+        var memory = new SparseMemoryReader();
+        var entityAddress = Ptr(0x0000010000030000L);
+        var entityBytes = new byte[0x300];
+
+        BinaryPrimitives.WriteInt32LittleEndian(
+            entityBytes.AsSpan(0x1A8, sizeof(int)),
+            2);
+        memory.Add(
+            entityAddress,
+            entityBytes);
+
+        var result = AnimalDifficultyMemoryProbe.Probe(
+            memory,
+            entityAddress);
+
+        if (!result.Candidates.Any(candidate =>
+                candidate.Path == "entity" &&
+                candidate.Offset == 0x1A8 &&
+                candidate.Encoding == "int32" &&
+                candidate.Value == 2))
+        {
+            throw new InvalidOperationException(
+                "Native difficulty probe did not surface the synthetic level field.");
         }
     }
 
