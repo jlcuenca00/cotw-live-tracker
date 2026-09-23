@@ -244,141 +244,267 @@
 
             <TabItem Header="Live Radar">
                 <Grid Margin="4,12,4,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.25*"/>
-                        <ColumnDefinition Width="1*"/>
-                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                    <Border Background="{StaticResource PanelBackground}"
+                    <Border Grid.Row="0"
+                            Background="{StaticResource PanelBackground}"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1"
                             CornerRadius="12"
-                            Margin="4"
-                            Padding="12">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
+                            Padding="10"
+                            Margin="4,0,4,8">
+                        <WrapPanel VerticalAlignment="Center">
+                            <TextBlock Text="Species"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       VerticalAlignment="Center"
+                                       Margin="4,0,5,0"/>
+                            <TextBox x:Name="LiveSpeciesFilter"
+                                     Width="120"
+                                     Margin="0,2,8,2"
+                                     ToolTip="Species contains..."/>
 
-                            <Grid Grid.Row="0"
-                                  Margin="4,0,4,10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center"
-                                            Margin="0,0,18,0">
-                                    <TextBlock Text="Live map"
-                                               FontSize="16"
-                                               FontWeight="SemiBold"/>
-                                    <TextBlock x:Name="MapModeStatusText"
-                                               Text="Relative radar fallback"
+                            <TextBlock Text="Trophy"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       VerticalAlignment="Center"
+                                       Margin="4,0,5,0"/>
+                            <ComboBox x:Name="LiveTrophyFilter"
+                                      Width="110"
+                                      Margin="0,2,8,2"/>
+
+                            <TextBlock Text="Level"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       VerticalAlignment="Center"
+                                       Margin="4,0,5,0"/>
+                            <ComboBox x:Name="LiveDifficultyFilter"
+                                      Width="92"
+                                      Margin="0,2,8,2"/>
+
+                            <TextBlock Text="Fur"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       VerticalAlignment="Center"
+                                       Margin="4,0,5,0"/>
+                            <TextBox x:Name="LiveFurFilter"
+                                     Width="110"
+                                     Margin="0,2,8,2"
+                                     ToolTip="Fur contains..."/>
+
+                            <TextBlock Text="Sex"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       VerticalAlignment="Center"
+                                       Margin="4,0,5,0"/>
+                            <ComboBox x:Name="LiveSexFilter"
+                                      Width="92"
+                                      Margin="0,2,8,2"/>
+
+                            <CheckBox x:Name="LiveRareOnly"
+                                      Content="Rare only"
+                                      Margin="8,5"/>
+                            <CheckBox x:Name="LiveGreatOneOnly"
+                                      Content="Great One"
+                                      Margin="8,5"/>
+
+                            <Button Content="Apply"
+                                    Padding="11,6"
+                                    Margin="8,2,4,2"
+                                    Click="ApplyLiveFilters_Click"/>
+                            <Button Content="Clear"
+                                    Padding="11,6"
+                                    Margin="4,2"
+                                    Click="ClearLiveFilters_Click"/>
+                        </WrapPanel>
+                    </Border>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.35*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Background="{StaticResource PanelBackground}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Margin="4"
+                                Padding="12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0"
+                                      Margin="4,0,4,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel VerticalAlignment="Center"
+                                                Margin="0,0,12,0">
+                                        <TextBlock Text="Live map"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="MapModeStatusText"
+                                                   Text="Relative radar fallback"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   FontSize="11"
+                                                   Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Column="1"
+                                               Text="Wheel = zoom · drag = pan"
                                                Foreground="{StaticResource TextSecondary}"
                                                FontSize="11"
-                                               Margin="0,2,0,0"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1"
-                                            Orientation="Horizontal"
-                                            VerticalAlignment="Center">
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <WrapPanel Grid.Row="1"
+                                           Margin="2,0,2,8"
+                                           VerticalAlignment="Center">
                                     <Button x:Name="BuildMapsFromGameButton"
                                             Content="Build maps"
                                             Padding="9,6"
-                                            Margin="0,0,6,0"
+                                            Margin="2"
                                             IsEnabled="False"
                                             Click="BuildMapsFromGameButton_Click"
                                             ToolTip="Extract and cache installed reserve maps directly from your COTW game archives."/>
                                     <Button x:Name="LoadMapImageButton"
                                             Content="Load image"
                                             Padding="9,6"
-                                            Margin="0,0,10,0"
+                                            Margin="2,2,8,2"
                                             Click="LoadMapImageButton_Click"
                                             ToolTip="Manually import a compatible full reserve map image."/>
+
+                                    <Button Content="−"
+                                            Width="34"
+                                            Padding="7,5"
+                                            Margin="2"
+                                            Click="MapZoomOutButton_Click"
+                                            ToolTip="Zoom out"/>
+                                    <TextBlock x:Name="MapZoomText"
+                                               Text="100%"
+                                               Width="48"
+                                               TextAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Margin="2"/>
+                                    <Button Content="+"
+                                            Width="34"
+                                            Padding="7,5"
+                                            Margin="2"
+                                            Click="MapZoomInButton_Click"
+                                            ToolTip="Zoom in"/>
+                                    <Button Content="Fit"
+                                            Padding="9,5"
+                                            Margin="4,2,2,2"
+                                            Click="MapFitButton_Click"
+                                            ToolTip="Fit the entire reserve map"/>
+                                    <Button Content="Player"
+                                            Padding="9,5"
+                                            Margin="2,2,10,2"
+                                            Click="MapCenterPlayerButton_Click"
+                                            ToolTip="Center the map on the live player position"/>
+
                                     <TextBlock Text="Range"
                                                Foreground="{StaticResource TextSecondary}"
                                                VerticalAlignment="Center"
-                                               Margin="0,0,6,0"/>
+                                               Margin="2,0,5,0"/>
                                     <Slider x:Name="RadarRangeSlider"
-                                            Width="110"
+                                            Width="105"
                                             Minimum="250"
                                             Maximum="1500"
                                             Value="1000"
                                             TickFrequency="250"
                                             IsSnapToTickEnabled="True"
+                                            VerticalAlignment="Center"
                                             ValueChanged="RadarRangeSlider_ValueChanged"/>
                                     <TextBlock x:Name="RadarRangeText"
                                                Text="1000 m"
-                                               Width="65"
-                                               Margin="10,0,0,0"
+                                               Width="58"
+                                               Margin="7,0,0,0"
                                                VerticalAlignment="Center"/>
-                                </StackPanel>
+                                </WrapPanel>
+
+                                <controls:RadarControl x:Name="Radar"
+                                                       Grid.Row="2"
+                                                       MinHeight="440"/>
                             </Grid>
+                        </Border>
 
-                            <controls:RadarControl x:Name="Radar"
-                                                   Grid.Row="1"
-                                                   MinHeight="500"/>
+                        <Grid Grid.Column="1"
+                              Margin="8,4,4,4">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="0.62*"/>
+                                <RowDefinition Height="0.38*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Background="{StaticResource PanelBackground}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="12"
+                                    Padding="12"
+                                    Margin="0,0,0,8">
+                                <DockPanel>
+                                    <Grid DockPanel.Dock="Top"
+                                          Margin="2,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Loaded animals"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="LiveFilterSummaryText"
+                                                   Grid.Column="1"
+                                                   Text="0 shown"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <DataGrid x:Name="LiveAnimalsGrid"
+                                              SelectionMode="Single"
+                                              SelectionChanged="LiveAnimalsGrid_SelectionChanged"
+                                              AlternationCount="2"
+                                              HorizontalScrollBarVisibility="Auto">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Dist" Binding="{Binding DistanceText}" Width="70"/>
+                                            <DataGridTextColumn Header="Species" Binding="{Binding DisplaySpecies}" Width="110"/>
+                                            <DataGridTextColumn Header="Level" Binding="{Binding Difficulty}" Width="95"/>
+                                            <DataGridTextColumn Header="Trophy" Binding="{Binding Trophy}" Width="75"/>
+                                            <DataGridTextColumn Header="Fur" Binding="{Binding Fur}" Width="95"/>
+                                            <DataGridTextColumn Header="Score" Binding="{Binding ScoreText}" Width="65"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </Border>
+
+                            <Border Grid.Row="1"
+                                    Background="{StaticResource PanelBackground}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="12"
+                                    Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="Selected animal"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Margin="0,0,0,12"/>
+                                    <TextBlock x:Name="SelectedAnimalTitle"
+                                               Text="Click a radar marker or live row"
+                                               FontSize="20"
+                                               FontWeight="Bold"/>
+                                    <TextBlock x:Name="SelectedAnimalDetails"
+                                               Text="Distance, identity, score, fur and XYZ will appear here."
+                                               Margin="0,8,0,0"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               FontFamily="Consolas"/>
+                                </StackPanel>
+                            </Border>
                         </Grid>
-                    </Border>
-
-                    <Grid Grid.Column="1"
-                          Margin="8,4,4,4">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="0.62*"/>
-                            <RowDefinition Height="0.38*"/>
-                        </Grid.RowDefinitions>
-
-                        <Border Background="{StaticResource PanelBackground}"
-                                BorderBrush="{StaticResource BorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="12"
-                                Padding="12"
-                                Margin="0,0,0,8">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Top"
-                                           Text="Loaded animals"
-                                           FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Margin="2,0,0,10"/>
-                                <DataGrid x:Name="LiveAnimalsGrid"
-                                          SelectionMode="Single"
-                                          SelectionChanged="LiveAnimalsGrid_SelectionChanged"
-                                          AlternationCount="2"
-                                          HorizontalScrollBarVisibility="Auto">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Dist" Binding="{Binding DistanceText}" Width="70"/>
-                                        <DataGridTextColumn Header="Species" Binding="{Binding DisplaySpecies}" Width="110"/>
-                                        <DataGridTextColumn Header="Level" Binding="{Binding Difficulty}" Width="95"/>
-                                        <DataGridTextColumn Header="Trophy" Binding="{Binding Trophy}" Width="75"/>
-                                        <DataGridTextColumn Header="Fur" Binding="{Binding Fur}" Width="95"/>
-                                        <DataGridTextColumn Header="Score" Binding="{Binding ScoreText}" Width="65"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </DockPanel>
-                        </Border>
-
-                        <Border Grid.Row="1"
-                                Background="{StaticResource PanelBackground}"
-                                BorderBrush="{StaticResource BorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="12"
-                                Padding="16">
-                            <StackPanel>
-                                <TextBlock Text="Selected animal"
-                                           FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Margin="0,0,0,12"/>
-                                <TextBlock x:Name="SelectedAnimalTitle"
-                                           Text="Click a radar marker or live row"
-                                           FontSize="20"
-                                           FontWeight="Bold"/>
-                                <TextBlock x:Name="SelectedAnimalDetails"
-                                           Text="Distance, identity, score, fur and XYZ will appear here."
-                                           Margin="0,8,0,0"
-                                           Foreground="{StaticResource TextSecondary}"
-                                           TextWrapping="Wrap"
-                                           FontFamily="Consolas"/>
-                            </StackPanel>
-                        </Border>
                     </Grid>
                 </Grid>
             </TabItem>
