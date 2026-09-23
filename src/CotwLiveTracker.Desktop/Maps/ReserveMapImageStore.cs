@@ -1,4 +1,5 @@
 using System.IO;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace CotwLiveTracker.Desktop.Maps;
@@ -27,6 +28,41 @@ internal static class ReserveMapImageStore
         return null;
     }
 
+    public static string SaveGenerated(ExtractedReserveMap map)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+
+        Directory.CreateDirectory(MapsDirectory);
+        DeleteExisting(map.ReserveIndex);
+
+        var destination = Path.Combine(
+            MapsDirectory,
+            $"reserve-{map.ReserveIndex}.png");
+
+        var bitmap = BitmapSource.Create(
+            map.Width,
+            map.Height,
+            96d,
+            96d,
+            PixelFormats.Bgra32,
+            null,
+            map.Bgra32,
+            map.Stride);
+        bitmap.Freeze();
+
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+
+        using var output = File.Open(
+            destination,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.Read);
+        encoder.Save(output);
+
+        return destination;
+    }
+
     public static string Import(int reserveIndex, string sourcePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
@@ -39,7 +75,17 @@ internal static class ReserveMapImageStore
         }
 
         Directory.CreateDirectory(MapsDirectory);
+        DeleteExisting(reserveIndex);
 
+        var destination = Path.Combine(
+            MapsDirectory,
+            $"reserve-{reserveIndex}{extension}");
+        File.Copy(sourcePath, destination, overwrite: true);
+        return destination;
+    }
+
+    private static void DeleteExisting(int reserveIndex)
+    {
         foreach (var oldExtension in Extensions)
         {
             var oldPath = Path.Combine(
@@ -50,12 +96,6 @@ internal static class ReserveMapImageStore
                 File.Delete(oldPath);
             }
         }
-
-        var destination = Path.Combine(
-            MapsDirectory,
-            $"reserve-{reserveIndex}{extension}");
-        File.Copy(sourcePath, destination, overwrite: true);
-        return destination;
     }
 
     public static BitmapImage Load(string path)
