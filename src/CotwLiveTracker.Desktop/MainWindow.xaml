@@ -44,8 +44,7 @@
                         <TextBlock Text="WILDTRACE"
                                    FontFamily="Bahnschrift SemiCondensed, Segoe UI"
                                    FontWeight="SemiBold"
-                                   FontSize="16"
-                                   CharacterSpacing="65"/>
+                                   FontSize="16"/>
                         <TextBlock Text="COTW SCANNER"
                                    Foreground="{StaticResource TextFaint}"
                                    FontSize="9"
