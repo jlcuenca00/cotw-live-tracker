@@ -1,4 +1,4 @@
-WildTrace v0.16.0 Beta 2
+WildTrace v0.16.0 Beta 3
 ====================
 
 Read-only live radar and population scanner for theHunter: Call of the Wild.
