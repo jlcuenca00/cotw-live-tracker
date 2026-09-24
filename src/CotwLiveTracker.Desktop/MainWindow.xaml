@@ -236,11 +236,12 @@
                                               Checked="LiveFilters_Changed"
                                               Unchecked="LiveFilters_Changed"/>
 
-                                    <TextBlock x:Name="ActiveFiltersText"
+                                    <WrapPanel x:Name="ActiveFilterChipsPanel"
+                                               Margin="0,0,0,5"/>
+                                    <TextBlock x:Name="NoActiveFiltersText"
                                                Text="No active filters"
                                                Foreground="{StaticResource TextFaint}"
                                                FontSize="10"
-                                               TextWrapping="Wrap"
                                                Margin="0,0,0,8"/>
 
                                     <Button Style="{StaticResource QuietButton}"
@@ -551,6 +552,7 @@
                                               Grid.Row="1"
                                               SelectionMode="Single"
                                               SelectionChanged="LiveAnimalsGrid_SelectionChanged"
+                                              MouseDoubleClick="LiveAnimalsGrid_MouseDoubleClick"
                                               HorizontalScrollBarVisibility="Disabled">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Species" Binding="{Binding DisplaySpecies}" Width="*"/>
