@@ -143,10 +143,53 @@
 
                     <controls:RadarControl x:Name="Radar"/>
 
-                    <!-- Soft viewport vignette. The radar itself also fades the actual
-                         reserve-image edges, so this remains responsive to any map crop. -->
+                    <!-- Viewport vignette: the visible reserve dissolves into the app
+                         shell even when the image is zoomed beyond its literal edges. -->
                     <Border IsHitTestVisible="False"
-                            Background="#09000000"/>
+                            Width="92"
+                            HorizontalAlignment="Left">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#F2080A07" Offset="0"/>
+                                <GradientStop Color="#9E080A07" Offset="0.38"/>
+                                <GradientStop Color="#00080A07" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+
+                    <Border IsHitTestVisible="False"
+                            Width="92"
+                            HorizontalAlignment="Right">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#00080A07" Offset="0"/>
+                                <GradientStop Color="#9E080A07" Offset="0.62"/>
+                                <GradientStop Color="#F2080A07" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+
+                    <Border IsHitTestVisible="False"
+                            Height="66"
+                            VerticalAlignment="Top">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                <GradientStop Color="#D9080A07" Offset="0"/>
+                                <GradientStop Color="#00080A07" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+
+                    <Border IsHitTestVisible="False"
+                            Height="74"
+                            VerticalAlignment="Bottom">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                <GradientStop Color="#00080A07" Offset="0"/>
+                                <GradientStop Color="#E6080A07" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
 
                     <!-- Small map state tag -->
                     <Border HorizontalAlignment="Center"
