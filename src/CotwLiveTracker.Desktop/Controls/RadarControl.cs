@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -15,23 +16,25 @@ public enum RadarFollowMode
 public sealed class RadarControl : FrameworkElement
 {
     private static readonly Brush BackgroundBrush =
-        new SolidColorBrush(Color.FromRgb(9, 13, 18));
+        new SolidColorBrush(Color.FromRgb(8, 10, 7));
     private static readonly Brush GridBrush =
-        new SolidColorBrush(Color.FromRgb(51, 65, 85));
+        new SolidColorBrush(Color.FromRgb(52, 59, 47));
     private static readonly Brush TextBrush =
-        new SolidColorBrush(Color.FromRgb(203, 213, 225));
+        new SolidColorBrush(Color.FromRgb(218, 214, 199));
     private static readonly Brush PlayerBrush =
-        new SolidColorBrush(Color.FromRgb(103, 232, 249));
+        new SolidColorBrush(Color.FromRgb(214, 138, 46));
     private static readonly Brush NormalBrush =
-        new SolidColorBrush(Color.FromRgb(226, 232, 240));
+        new SolidColorBrush(Color.FromRgb(144, 150, 138));
+    private static readonly Brush SilverBrush =
+        new SolidColorBrush(Color.FromRgb(90, 140, 200));
     private static readonly Brush GoldBrush =
-        new SolidColorBrush(Color.FromRgb(251, 191, 36));
+        new SolidColorBrush(Color.FromRgb(214, 164, 61));
     private static readonly Brush DiamondBrush =
-        new SolidColorBrush(Color.FromRgb(96, 165, 250));
+        new SolidColorBrush(Color.FromRgb(155, 101, 213));
     private static readonly Brush RareBrush =
-        new SolidColorBrush(Color.FromRgb(34, 211, 238));
+        new SolidColorBrush(Color.FromRgb(58, 184, 176));
     private static readonly Brush GreatOneBrush =
-        new SolidColorBrush(Color.FromRgb(244, 114, 182));
+        new SolidColorBrush(Color.FromRgb(220, 90, 81));
     private static readonly Brush MapShadeBrush =
         new SolidColorBrush(Color.FromArgb(28, 0, 0, 0));
     private static readonly Brush MarkerShadowBrush =
@@ -44,7 +47,7 @@ public sealed class RadarControl : FrameworkElement
         new SolidColorBrush(Color.FromArgb(70, 251, 146, 60));
 
     private const double MinimumMapZoom = 1d;
-    private const double MaximumMapZoom = 10d;
+    private const double MaximumMapZoom = 24d;
     private const double ZoomStep = 1.25d;
 
     private readonly List<(Point Point, LiveAnimalView Animal)> _markers = [];
@@ -69,6 +72,8 @@ public sealed class RadarControl : FrameworkElement
     public Action<double>? MapZoomChanged { get; set; }
     public Action? FollowModeChanged { get; set; }
     public Action? FollowTargetLost { get; set; }
+
+    public bool ShowReferences { get; set; } = true;
 
     public IReadOnlyList<LiveAnimalView> Animals
     {
@@ -366,18 +371,21 @@ public sealed class RadarControl : FrameworkElement
                     CameraZ))
             .FirstOrDefault();
 
-        foreach (var reference in references)
+        if (ShowReferences)
         {
-            var referencePoint = NormalizedToPoint(
-                reference.ExpectedNormalized,
-                mapRect);
+            foreach (var reference in references)
+            {
+                var referencePoint = NormalizedToPoint(
+                    reference.ExpectedNormalized,
+                    mapRect);
 
-            drawingContext.DrawEllipse(
-                ReferenceFillBrush,
-                new Pen(ReferenceBrush, 1.5d),
-                referencePoint,
-                5d,
-                5d);
+                drawingContext.DrawEllipse(
+                    ReferenceFillBrush,
+                    new Pen(ReferenceBrush, 1.5d),
+                    referencePoint,
+                    5d,
+                    5d);
+            }
         }
 
         var playerNormalized =
@@ -388,7 +396,7 @@ public sealed class RadarControl : FrameworkElement
             playerNormalized,
             mapRect);
 
-        if (nearestReference is not null)
+        if (ShowReferences && nearestReference is not null)
         {
             var nearestPoint = NormalizedToPoint(
                 nearestReference.ExpectedNormalized,
@@ -428,16 +436,16 @@ public sealed class RadarControl : FrameworkElement
         {
             drawingContext.DrawEllipse(
                 PlayerHaloBrush,
-                new Pen(PlayerBrush, 2d),
+                new Pen(PlayerBrush, 1.5d),
                 player,
-                11d,
-                11d);
-            drawingContext.DrawEllipse(
+                12d,
+                12d);
+            DrawFontAwesomeGlyph(
+                drawingContext,
+                "\uf05b",
+                player,
                 PlayerBrush,
-                null,
-                player,
-                4.5d,
-                4.5d);
+                13d);
         }
 
         foreach (var animal in Animals)
@@ -603,29 +611,54 @@ public sealed class RadarControl : FrameworkElement
         LiveAnimalView animal,
         bool mapMode)
     {
-        var brush =
-            MarkerBrush(animal);
+        var brush = MarkerBrush(animal);
         var selected =
             SelectedAnimal is not null &&
-            SelectedAnimal.Address ==
-            animal.Address;
-        var markerRadius =
-            selected
-                ? 8d
-                : mapMode
-                    ? 6d
-                    : 5d;
+            SelectedAnimal.Address == animal.Address;
+        var followed =
+            FollowMode == RadarFollowMode.Animal &&
+            FollowedAnimal?.Address == animal.Address;
 
-        if (selected)
+        var zoomScale = mapMode
+            ? Math.Clamp(0.90d + (Math.Log(Math.Max(1d, _mapZoom), 2d) * 0.08d), 0.9d, 1.28d)
+            : 1d;
+        var markerRadius =
+            (selected || followed ? 9d : 7d) * zoomScale;
+
+        if (animal.IsGreatOne)
+        {
+            drawingContext.DrawEllipse(
+                new SolidColorBrush(Color.FromArgb(30, 220, 90, 81)),
+                null,
+                point,
+                markerRadius + 11d,
+                markerRadius + 11d);
+            drawingContext.DrawEllipse(
+                new SolidColorBrush(Color.FromArgb(56, 220, 90, 81)),
+                null,
+                point,
+                markerRadius + 6d,
+                markerRadius + 6d);
+        }
+
+        if (animal.IsRare && !animal.IsGreatOne)
         {
             drawingContext.DrawEllipse(
                 null,
-                new Pen(
-                    PlayerBrush,
-                    2d),
+                new Pen(RareBrush, 2d),
                 point,
-                11d,
-                11d);
+                markerRadius + 4d,
+                markerRadius + 4d);
+        }
+
+        if (selected || followed)
+        {
+            drawingContext.DrawEllipse(
+                null,
+                new Pen(PlayerBrush, followed ? 2.5d : 1.8d),
+                point,
+                markerRadius + 5d,
+                markerRadius + 5d);
         }
 
         drawingContext.DrawEllipse(
@@ -634,14 +667,23 @@ public sealed class RadarControl : FrameworkElement
             point,
             markerRadius + 2d,
             markerRadius + 2d);
+
         drawingContext.DrawEllipse(
-            brush,
-            null,
+            new SolidColorBrush(Color.FromArgb(225, 16, 18, 15)),
+            new Pen(brush, 1.8d),
             point,
             markerRadius,
             markerRadius);
 
+        DrawFontAwesomeGlyph(
+            drawingContext,
+            "\uf1b0",
+            point,
+            brush,
+            Math.Max(8d, markerRadius + 2d));
+
         if (selected ||
+            followed ||
             animal.IsGreatOne ||
             animal.IsRare ||
             string.Equals(
@@ -651,16 +693,44 @@ public sealed class RadarControl : FrameworkElement
         {
             DrawLabel(
                 drawingContext,
-                $"{animal.DisplaySpecies} · {animal.DistanceMeters:F0}m",
+                $"{animal.DisplaySpecies} · {animal.Difficulty} · {animal.DistanceMeters:F0}m",
                 new Point(
-                    point.X + 10d,
+                    point.X + markerRadius + 6d,
                     point.Y - 8d),
                 brush,
-                11d);
+                10.5d);
         }
 
-        _markers.Add(
-            (point, animal));
+        _markers.Add((point, animal));
+    }
+
+    private void DrawFontAwesomeGlyph(
+        DrawingContext drawingContext,
+        string glyph,
+        Point center,
+        Brush brush,
+        double size)
+    {
+        var typeface = new Typeface(
+            new FontFamily("/FontAwesome.Sharp;component/fonts/#Font Awesome 6 Free Solid"),
+            FontStyles.Normal,
+            FontWeights.Normal,
+            FontStretches.Normal);
+
+        var text = new FormattedText(
+            glyph,
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            typeface,
+            size,
+            brush,
+            VisualTreeHelper.GetDpi(this).PixelsPerDip);
+
+        drawingContext.DrawText(
+            text,
+            new Point(
+                center.X - (text.Width / 2d),
+                center.Y - (text.Height / 2d)));
     }
 
     protected override void OnMouseWheel(
@@ -755,7 +825,9 @@ public sealed class RadarControl : FrameworkElement
 
         if (!_dragMoved)
         {
-            SelectMarkerAt(click);
+            SelectMarkerAt(
+                click,
+                e.ClickCount >= 2);
         }
 
         _dragMoved = false;
@@ -763,7 +835,8 @@ public sealed class RadarControl : FrameworkElement
     }
 
     private void SelectMarkerAt(
-        Point click)
+        Point click,
+        bool follow)
     {
         var nearest =
             _markers
@@ -789,6 +862,12 @@ public sealed class RadarControl : FrameworkElement
             nearest.Marker.Animal;
         AnimalSelected?.Invoke(
             nearest.Marker.Animal);
+
+        if (follow)
+        {
+            StartFollowingAnimal(
+                nearest.Marker.Animal);
+        }
     }
 
     private void SetMapZoom(
@@ -950,20 +1029,18 @@ public sealed class RadarControl : FrameworkElement
     private static Brush MarkerBrush(
         LiveAnimalView animal)
     {
-        if (animal.IsGreatOne)
+        var level = DifficultyLevel(animal.Difficulty);
+
+        if (animal.IsGreatOne || level >= 10)
         {
             return GreatOneBrush;
-        }
-
-        if (animal.IsRare)
-        {
-            return RareBrush;
         }
 
         if (string.Equals(
                 animal.Trophy,
                 "Diamond",
-                StringComparison.OrdinalIgnoreCase))
+                StringComparison.OrdinalIgnoreCase) ||
+            level >= 9)
         {
             return DiamondBrush;
         }
@@ -976,7 +1053,29 @@ public sealed class RadarControl : FrameworkElement
             return GoldBrush;
         }
 
+        if (string.Equals(
+                animal.Trophy,
+                "Silver",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return SilverBrush;
+        }
+
         return NormalBrush;
+    }
+
+    private static int DifficultyLevel(string value)
+    {
+        var separator = value.IndexOf('-');
+        var level = separator >= 0
+            ? value[..separator]
+            : value;
+
+        return int.TryParse(
+            level.Trim().TrimStart('~'),
+            out var parsed)
+            ? parsed
+            : 0;
     }
 
     private static void DrawLabel(
