@@ -169,9 +169,9 @@
 
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="214"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="356"/>
+                            <ColumnDefinition Width="190"/>
+                            <ColumnDefinition Width="*" MinWidth="380"/>
+                            <ColumnDefinition Width="340"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- FILTER RAIL -->
@@ -193,6 +193,23 @@
                                                  Padding="31,6,8,6"
                                                  ToolTip="Search species, fur, trophy, sex or level"
                                                  TextChanged="LiveFilters_Changed"/>
+                                        <TextBlock Text="Search animals"
+                                                   Foreground="{StaticResource TextFaint}"
+                                                   FontSize="10"
+                                                   Margin="31,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   IsHitTestVisible="False">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Text, ElementName=LiveSearchFilter}" Value="">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </Grid>
 
                                     <TextBlock Text="SPECIES" Style="{StaticResource SectionLabel}"/>
@@ -419,9 +436,11 @@
                                         </Button>
                                     </Grid>
 
-                                    <StackPanel Grid.Row="1"
+                                    <StackPanel x:Name="SelectedBadgesPanel"
+                                                Grid.Row="1"
                                                 Orientation="Horizontal"
-                                                Margin="0,13,0,13">
+                                                Margin="0,13,0,13"
+                                                Visibility="Collapsed">
                                         <Border Background="#181B15"
                                                 BorderBrush="{StaticResource BorderBrush}"
                                                 BorderThickness="1"
@@ -457,7 +476,9 @@
                                         </Border>
                                     </StackPanel>
 
-                                    <Grid Grid.Row="2">
+                                    <Grid x:Name="SelectedMetricsGrid"
+                                          Grid.Row="2"
+                                          Visibility="Collapsed">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="*"/>
@@ -490,7 +511,9 @@
                                         </StackPanel>
                                     </Grid>
 
-                                    <StackPanel Grid.Row="3">
+                                    <StackPanel x:Name="SelectedFooterPanel"
+                                                Grid.Row="3"
+                                                Visibility="Collapsed">
                                         <TextBlock x:Name="SelectedThresholdText"
                                                    Text="Select an animal to see trophy threshold context."
                                                    Foreground="{StaticResource TextSecondary}"
@@ -543,7 +566,7 @@
                                                        FontWeight="SemiBold"/>
                                         </StackPanel>
                                         <TextBlock Grid.Column="1"
-                                                   Text="double-click marker to follow"
+                                                   Text="double-click to follow"
                                                    Foreground="{StaticResource TextFaint}"
                                                    FontSize="9"
                                                    VerticalAlignment="Center"/>
