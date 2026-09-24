@@ -42,9 +42,9 @@ public sealed class RadarControl : FrameworkElement
     private static readonly Brush PlayerHaloBrush =
         new SolidColorBrush(Color.FromArgb(72, 103, 232, 249));
     private static readonly Brush ReferenceBrush =
-        new SolidColorBrush(Color.FromRgb(251, 146, 60));
+        new SolidColorBrush(Color.FromRgb(191, 126, 55));
     private static readonly Brush ReferenceFillBrush =
-        new SolidColorBrush(Color.FromArgb(70, 251, 146, 60));
+        new SolidColorBrush(Color.FromArgb(32, 191, 126, 55));
 
     private const double MinimumMapZoom = 1d;
     private const double MaximumMapZoom = 24d;
@@ -383,8 +383,8 @@ public sealed class RadarControl : FrameworkElement
                     ReferenceFillBrush,
                     new Pen(ReferenceBrush, 1.5d),
                     referencePoint,
-                    5d,
-                    5d);
+                    4d,
+                    4d);
             }
         }
 
@@ -484,17 +484,6 @@ public sealed class RadarControl : FrameworkElement
                 12d),
             TextBrush,
             12d);
-
-        var referenceStatus = nearestReference is null
-            ? ""
-            : $" · nearest {nearestReference.Name} {nearestReference.DistanceTo(CameraX, CameraZ):F1}m";
-
-        DrawLabel(
-            drawingContext,
-            $"{calibration.ReserveName} · player X/Z {CameraX:F1}, {CameraZ:F1} · UV {playerNormalized.X:F4}, {playerNormalized.Y:F4}{referenceStatus}",
-            new Point(14d, height - 27d),
-            TextBrush,
-            11d);
     }
 
     private void RenderRelativeRadar(
