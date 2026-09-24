@@ -157,10 +157,10 @@ public sealed class RadarControl : FrameworkElement
     }
 
     public void ZoomIn() =>
-        SetMapZoom(_mapZoom * ZoomStep, ViewCenter());
+        SetMapZoom(_mapZoom * ZoomStep, TrackingCenter());
 
     public void ZoomOut() =>
-        SetMapZoom(_mapZoom / ZoomStep, ViewCenter());
+        SetMapZoom(_mapZoom / ZoomStep, TrackingCenter());
 
     public void ResetMapView()
     {
@@ -282,11 +282,12 @@ public sealed class RadarControl : FrameworkElement
             worldZ);
 
         var fitted = BaseMapRect();
-        var viewCenter = ViewCenter();
+        var renderCenter = RenderCenter();
+        var trackingCenter = TrackingCenter();
         var baseTarget = NormalizedToPoint(
             normalized,
             fitted);
-        var baseVector = baseTarget - viewCenter;
+        var baseVector = baseTarget - renderCenter;
 
         if (ensureTrackingZoom &&
             _mapZoom <= 1.01d)
@@ -295,7 +296,9 @@ public sealed class RadarControl : FrameworkElement
             MapZoomChanged?.Invoke(_mapZoom);
         }
 
-        _mapPan = -baseVector * _mapZoom;
+        _mapPan =
+            (trackingCenter - renderCenter) -
+            (baseVector * _mapZoom);
         ClampMapPan();
         InvalidateVisual();
     }
@@ -352,7 +355,7 @@ public sealed class RadarControl : FrameworkElement
             return;
         }
 
-        var safeViewport = SafeViewportRect();
+        var viewport = FullViewportRect();
         var fitted = BaseMapRect();
 
         if (fitted.Width <= 0d ||
@@ -363,10 +366,10 @@ public sealed class RadarControl : FrameworkElement
 
         var availableWidth = Math.Max(
             1d,
-            safeViewport.Width - (InitialMapGutter * 2d));
+            viewport.Width - (InitialMapGutter * 2d));
         var availableHeight = Math.Max(
             1d,
-            safeViewport.Height - (InitialMapGutter * 2d));
+            viewport.Height - (InitialMapGutter * 2d));
 
         var coverZoom = Math.Max(
             availableWidth / fitted.Width,
@@ -396,7 +399,7 @@ public sealed class RadarControl : FrameworkElement
             fitted,
             _mapZoom,
             _mapPan,
-            ViewCenter());
+            RenderCenter());
 
         drawingContext.PushClip(
             new RectangleGeometry(
@@ -1078,7 +1081,7 @@ public sealed class RadarControl : FrameworkElement
         }
 
         var center =
-            ViewCenter();
+            RenderCenter();
         var anchorVector =
             anchor - center;
         var unscaledVector =
@@ -1129,18 +1132,18 @@ public sealed class RadarControl : FrameworkElement
             return;
         }
 
-        var safeViewport = SafeViewportRect();
+        var viewport = FullViewportRect();
         var fitted = BaseMapRect();
         var scaledWidth = fitted.Width * _mapZoom;
         var scaledHeight = fitted.Height * _mapZoom;
 
         // A small, intentional gutter is allowed at the extreme pan limit so
         // the reserve edge does not feel glued to the application chrome.
-        var maxPanX = scaledWidth >= safeViewport.Width
-            ? ((scaledWidth - safeViewport.Width) / 2d) + MapBreathingRoomX
+        var maxPanX = scaledWidth >= viewport.Width
+            ? ((scaledWidth - viewport.Width) / 2d) + MapBreathingRoomX
             : 0d;
-        var maxPanY = scaledHeight >= safeViewport.Height
-            ? ((scaledHeight - safeViewport.Height) / 2d) + MapBreathingRoomY
+        var maxPanY = scaledHeight >= viewport.Height
+            ? ((scaledHeight - viewport.Height) / 2d) + MapBreathingRoomY
             : 0d;
 
         _mapPan = new Vector(
@@ -1181,25 +1184,35 @@ public sealed class RadarControl : FrameworkElement
             Math.Max(1d, height - top - bottom));
     }
 
+    private Rect FullViewportRect() =>
+        new(
+            0d,
+            0d,
+            Math.Max(1d, ActualWidth),
+            Math.Max(1d, ActualHeight));
+
     private Rect BaseMapRect()
     {
-        var safeViewport = SafeViewportRect();
+        var viewport = FullViewportRect();
 
-        var fitted = FitImageRect(
+        return FitImageRect(
             MapImage?.Width ?? 1d,
             MapImage?.Height ?? 1d,
-            safeViewport.Width,
-            safeViewport.Height,
+            viewport.Width,
+            viewport.Height,
             0d);
-
-        return new Rect(
-            safeViewport.Left + fitted.Left,
-            safeViewport.Top + fitted.Top,
-            fitted.Width,
-            fitted.Height);
     }
 
-    private Point ViewCenter()
+    private Point RenderCenter()
+    {
+        var viewport = FullViewportRect();
+
+        return new Point(
+            viewport.Left + (viewport.Width / 2d),
+            viewport.Top + (viewport.Height / 2d));
+    }
+
+    private Point TrackingCenter()
     {
         var safeViewport = SafeViewportRect();
 
