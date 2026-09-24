@@ -381,7 +381,11 @@ public partial class MainWindow : Window
         LiveAnimalsGrid.ItemsSource = filtered;
         Radar.Animals = filtered;
         LiveFilterSummaryText.Text =
-            $"{filtered.Length:N0} shown / {animals.Count:N0} loaded";
+            $"{filtered.Length:N0} / {animals.Count:N0}";
+        NoLoadedAnimalsText.Visibility =
+            filtered.Length == 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
         var activeFilters = new List<(string Key, string Label)>();
         if (!string.IsNullOrWhiteSpace(search)) activeFilters.Add(("search", search));
@@ -958,6 +962,7 @@ public partial class MainWindow : Window
         SelectedThresholdText.Text = animal.NextTrophyText;
 
         var trophyBrush = TrophyBrush(animal);
+        SelectedAccentBar.Background = trophyBrush;
         SelectedTrophyBadge.BorderBrush = trophyBrush;
         SelectedTrophyText.Foreground = trophyBrush;
 
@@ -1003,6 +1008,7 @@ public partial class MainWindow : Window
         SelectedHealthText.Text = "—";
         SelectedThresholdText.Text = "Select an animal to see trophy threshold context.";
         SelectedTechnicalText.Text = "—";
+        SelectedAccentBar.Background = (Brush)FindResource("AccentBrush");
         SelectedTrophyBadge.BorderBrush = (Brush)FindResource("BorderBrush");
 
         UpdateFollowUi();
