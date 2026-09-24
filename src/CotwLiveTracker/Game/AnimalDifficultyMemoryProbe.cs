@@ -37,6 +37,11 @@ internal sealed record DifficultyMemoryProbeResult(
             PreferredCandidateLevel is int preferred
                 ? $"Experimental native candidate: {FormatDifficulty(preferred)}"
                 : "Experimental native candidate: unavailable",
+            PreferredCandidateLevel is int candidate &&
+            TryParseEstimatedLevel(estimatedDifficulty) is int estimated &&
+            candidate != estimated
+                ? $"Mismatch detected: native candidate {candidate} vs weight estimate {estimated}"
+                : "Candidate/estimate mismatch: none detected",
             "Candidate path: *(entity+0x018)+0x008 int32",
             "Status: strong candidate only; validate on a different in-game level before treating it as authoritative.",
             $"Immediate pointer windows read: {PointerReads}",
@@ -60,6 +65,33 @@ internal sealed record DifficultyMemoryProbeResult(
             "lets us isolate the native field.");
 
         return string.Join(Environment.NewLine, lines);
+    }
+
+    private static int? TryParseEstimatedLevel(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var span = value.AsSpan().Trim();
+        while (!span.IsEmpty &&
+               !char.IsDigit(span[0]))
+        {
+            span = span[1..];
+        }
+
+        var length = 0;
+        while (length < span.Length &&
+               char.IsDigit(span[length]))
+        {
+            length++;
+        }
+
+        return length > 0 &&
+               int.TryParse(span[..length], out var level)
+            ? level
+            : null;
     }
 
     private static string FormatDifficulty(int level) =>
