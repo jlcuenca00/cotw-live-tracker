@@ -383,9 +383,10 @@
             <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="Padding" Value="15,12"/>
-            <Setter Property="Margin" Value="8,3"/>
-            <Setter Property="MinWidth" Value="164"/>
+            <Setter Property="Padding" Value="16,0,12,0"/>
+            <Setter Property="Margin" Value="8,2"/>
+            <Setter Property="MinWidth" Value="148"/>
+            <Setter Property="Height" Value="42"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="VerticalContentAlignment" Value="Stretch"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -401,17 +402,17 @@
                                     CornerRadius="4"
                                     Padding="{TemplateBinding Padding}">
                                 <ContentPresenter ContentSource="Header"
-                                                  HorizontalAlignment="Center"
+                                                  HorizontalAlignment="Left"
                                                   VerticalAlignment="Center"
                                                   TextElement.Foreground="{TemplateBinding Foreground}"/>
                             </Border>
                             <Border x:Name="AccentBar"
                                     Width="3"
-                                    Margin="1,1,0,1"
+                                    Margin="1,5,0,5"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Stretch"
                                     Background="{StaticResource AccentBrush}"
-                                    CornerRadius="3,0,0,3"
+                                    CornerRadius="2"
                                     Visibility="Collapsed"
                                     IsHitTestVisible="False"/>
                         </Grid>
