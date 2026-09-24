@@ -64,6 +64,7 @@ public sealed class RadarControl : FrameworkElement
     private Vector _panAtDragStart;
     private bool _isDragging;
     private bool _dragMoved;
+    private bool _fillViewportOnNextRender;
     private RadarFollowMode _followMode;
     private nint? _followedAnimalAddress;
     private LiveAnimalView? _followedAnimal;
@@ -92,6 +93,7 @@ public sealed class RadarControl : FrameworkElement
         {
             _mapImage = value;
             ResetMapView();
+            _fillViewportOnNextRender = value is not null;
             InvalidateVisual();
         }
     }
@@ -314,6 +316,10 @@ public sealed class RadarControl : FrameworkElement
 
         if (IsMapMode)
         {
+            ApplyInitialViewportFill(
+                width,
+                height);
+
             RenderMap(
                 drawingContext,
                 width,
@@ -326,6 +332,48 @@ public sealed class RadarControl : FrameworkElement
                 width,
                 height);
         }
+    }
+
+    private void ApplyInitialViewportFill(
+        double width,
+        double height)
+    {
+        if (!_fillViewportOnNextRender ||
+            MapImage is null ||
+            width <= 0d ||
+            height <= 0d)
+        {
+            return;
+        }
+
+        var fitted = FitImageRect(
+            MapImage.Width,
+            MapImage.Height,
+            width,
+            height,
+            10d);
+
+        if (fitted.Width <= 0d ||
+            fitted.Height <= 0d)
+        {
+            return;
+        }
+
+        var availableWidth = Math.Max(1d, width - 20d);
+        var availableHeight = Math.Max(1d, height - 20d);
+
+        var coverZoom = Math.Max(
+            availableWidth / fitted.Width,
+            availableHeight / fitted.Height);
+
+        _mapZoom = Math.Clamp(
+            coverZoom,
+            MinimumMapZoom,
+            MaximumMapZoom);
+        _mapPan = default;
+        _fillViewportOnNextRender = false;
+
+        MapZoomChanged?.Invoke(_mapZoom);
     }
 
     private void RenderMap(
