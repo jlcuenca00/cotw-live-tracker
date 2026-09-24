@@ -49,6 +49,9 @@ public sealed class RadarControl : FrameworkElement
     private const double MinimumMapZoom = 1d;
     private const double MaximumMapZoom = 24d;
     private const double ZoomStep = 1.25d;
+    private const double MapBreathingRoomX = 28d;
+    private const double MapBreathingRoomY = 22d;
+    private const double InitialMapGutter = 18d;
 
     private readonly List<(Point Point, LiveAnimalView Animal)> _markers = [];
     private IReadOnlyList<LiveAnimalView> _animals = [];
@@ -75,6 +78,13 @@ public sealed class RadarControl : FrameworkElement
     public Action? FollowTargetLost { get; set; }
 
     public bool ShowReferences { get; set; } = true;
+
+    // The center of useful map space can differ from the physical control center
+    // because the floating filter/inspector panels occupy asymmetric widths.
+    public double SafeInsetLeft { get; set; }
+    public double SafeInsetTop { get; set; }
+    public double SafeInsetRight { get; set; }
+    public double SafeInsetBottom { get; set; }
 
     public IReadOnlyList<LiveAnimalView> Animals
     {
@@ -272,12 +282,7 @@ public sealed class RadarControl : FrameworkElement
             worldX,
             worldZ);
 
-        var fitted = FitImageRect(
-            MapImage!.Width,
-            MapImage.Height,
-            ActualWidth,
-            ActualHeight,
-            10d);
+        var fitted = BaseMapRect();
         var viewCenter = ViewCenter();
         var baseTarget = NormalizedToPoint(
             normalized,
@@ -348,12 +353,8 @@ public sealed class RadarControl : FrameworkElement
             return;
         }
 
-        var fitted = FitImageRect(
-            MapImage.Width,
-            MapImage.Height,
-            width,
-            height,
-            10d);
+        var safeViewport = SafeViewportRect();
+        var fitted = BaseMapRect();
 
         if (fitted.Width <= 0d ||
             fitted.Height <= 0d)
@@ -361,8 +362,12 @@ public sealed class RadarControl : FrameworkElement
             return;
         }
 
-        var availableWidth = Math.Max(1d, width);
-        var availableHeight = Math.Max(1d, height);
+        var availableWidth = Math.Max(
+            1d,
+            safeViewport.Width - (InitialMapGutter * 2d));
+        var availableHeight = Math.Max(
+            1d,
+            safeViewport.Height - (InitialMapGutter * 2d));
 
         var coverZoom = Math.Max(
             availableWidth / fitted.Width,
@@ -387,12 +392,7 @@ public sealed class RadarControl : FrameworkElement
         var image = MapImage!;
         var calibration = MapCalibration!;
 
-        var fitted = FitImageRect(
-            image.Width,
-            image.Height,
-            width,
-            height,
-            10d);
+        var fitted = BaseMapRect();
         var mapRect = TransformMapRect(
             fitted,
             _mapZoom,
@@ -1059,21 +1059,18 @@ public sealed class RadarControl : FrameworkElement
             return;
         }
 
-        var fitted = FitImageRect(
-            MapImage.Width,
-            MapImage.Height,
-            ActualWidth,
-            ActualHeight,
-            10d);
-
+        var safeViewport = SafeViewportRect();
+        var fitted = BaseMapRect();
         var scaledWidth = fitted.Width * _mapZoom;
         var scaledHeight = fitted.Height * _mapZoom;
 
-        var maxPanX = scaledWidth > ActualWidth
-            ? (scaledWidth - ActualWidth) / 2d
+        // A small, intentional gutter is allowed at the extreme pan limit so
+        // the reserve edge does not feel glued to the application chrome.
+        var maxPanX = scaledWidth >= safeViewport.Width
+            ? ((scaledWidth - safeViewport.Width) / 2d) + MapBreathingRoomX
             : 0d;
-        var maxPanY = scaledHeight > ActualHeight
-            ? (scaledHeight - ActualHeight) / 2d
+        var maxPanY = scaledHeight >= safeViewport.Height
+            ? ((scaledHeight - safeViewport.Height) / 2d) + MapBreathingRoomY
             : 0d;
 
         _mapPan = new Vector(
@@ -1081,10 +1078,65 @@ public sealed class RadarControl : FrameworkElement
             Math.Clamp(_mapPan.Y, -maxPanY, maxPanY));
     }
 
-    private Point ViewCenter() =>
-        new(
-            ActualWidth / 2d,
-            ActualHeight / 2d);
+    private Rect SafeViewportRect()
+    {
+        var width = Math.Max(1d, ActualWidth);
+        var height = Math.Max(1d, ActualHeight);
+
+        const double minimumSafeWidth = 280d;
+        const double minimumSafeHeight = 260d;
+
+        var left = Math.Clamp(
+            SafeInsetLeft,
+            0d,
+            Math.Max(0d, width - minimumSafeWidth));
+        var right = Math.Clamp(
+            SafeInsetRight,
+            0d,
+            Math.Max(0d, width - left - minimumSafeWidth));
+
+        var top = Math.Clamp(
+            SafeInsetTop,
+            0d,
+            Math.Max(0d, height - minimumSafeHeight));
+        var bottom = Math.Clamp(
+            SafeInsetBottom,
+            0d,
+            Math.Max(0d, height - top - minimumSafeHeight));
+
+        return new Rect(
+            left,
+            top,
+            Math.Max(1d, width - left - right),
+            Math.Max(1d, height - top - bottom));
+    }
+
+    private Rect BaseMapRect()
+    {
+        var safeViewport = SafeViewportRect();
+
+        var fitted = FitImageRect(
+            MapImage?.Width ?? 1d,
+            MapImage?.Height ?? 1d,
+            safeViewport.Width,
+            safeViewport.Height,
+            0d);
+
+        return new Rect(
+            safeViewport.Left + fitted.Left,
+            safeViewport.Top + fitted.Top,
+            fitted.Width,
+            fitted.Height);
+    }
+
+    private Point ViewCenter()
+    {
+        var safeViewport = SafeViewportRect();
+
+        return new Point(
+            safeViewport.Left + (safeViewport.Width / 2d),
+            safeViewport.Top + (safeViewport.Height / 2d));
+    }
 
     private static Rect TransformMapRect(
         Rect fitted,
