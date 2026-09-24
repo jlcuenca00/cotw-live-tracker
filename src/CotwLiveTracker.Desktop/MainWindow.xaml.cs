@@ -6,6 +6,7 @@ using CotwLiveTracker.Desktop.Controls;
 using CotwLiveTracker.Desktop.Maps;
 using Microsoft.Win32;
 using CotwLiveTracker.Population;
+using FontAwesome.Sharp;
 
 namespace CotwLiveTracker.Desktop;
 
@@ -378,19 +379,100 @@ public partial class MainWindow : Window
         LiveFilterSummaryText.Text =
             $"{filtered.Length:N0} shown / {animals.Count:N0} loaded";
 
-        var activeFilters = new List<string>();
-        if (!string.IsNullOrWhiteSpace(search)) activeFilters.Add($"search: {search}");
-        if (!string.IsNullOrWhiteSpace(species)) activeFilters.Add(species);
-        if (trophy is not null) activeFilters.Add(trophy);
-        if (difficulty is not null) activeFilters.Add($"level {difficulty}");
-        if (!string.IsNullOrWhiteSpace(fur)) activeFilters.Add(fur);
-        if (sex is not null) activeFilters.Add(sex);
-        if (LiveRareOnly.IsChecked == true) activeFilters.Add("rare");
-        if (LiveGreatOneOnly.IsChecked == true) activeFilters.Add("Great One");
+        var activeFilters = new List<(string Key, string Label)>();
+        if (!string.IsNullOrWhiteSpace(search)) activeFilters.Add(("search", search));
+        if (!string.IsNullOrWhiteSpace(species)) activeFilters.Add(("species", species));
+        if (trophy is not null) activeFilters.Add(("trophy", trophy));
+        if (difficulty is not null) activeFilters.Add(("difficulty", $"Level {difficulty}"));
+        if (!string.IsNullOrWhiteSpace(fur)) activeFilters.Add(("fur", fur));
+        if (sex is not null) activeFilters.Add(("sex", sex));
+        if (LiveRareOnly.IsChecked == true) activeFilters.Add(("rare", "Rare"));
+        if (LiveGreatOneOnly.IsChecked == true) activeFilters.Add(("greatone", "Great One"));
 
-        ActiveFiltersText.Text = activeFilters.Count == 0
-            ? "No active filters"
-            : string.Join(" · ", activeFilters);
+        RenderActiveFilterChips(activeFilters);
+    }
+
+    private void RenderActiveFilterChips(
+        IReadOnlyList<(string Key, string Label)> filters)
+    {
+        ActiveFilterChipsPanel.Children.Clear();
+        NoActiveFiltersText.Visibility =
+            filters.Count == 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        foreach (var (key, label) in filters)
+        {
+            var content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal
+            };
+            content.Children.Add(new TextBlock
+            {
+                Text = label,
+                FontSize = 10,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            content.Children.Add(new IconBlock
+            {
+                Icon = IconChar.Xmark,
+                FontSize = 8,
+                Margin = new Thickness(7, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var chip = new Button
+            {
+                Tag = key,
+                Content = content,
+                Padding = new Thickness(7, 4, 7, 4),
+                Margin = new Thickness(0, 0, 5, 5),
+                Background = (Brush)FindResource("PanelRaised"),
+                BorderBrush = (Brush)FindResource("BorderBrush")
+            };
+            chip.Click += ActiveFilterChip_Click;
+            ActiveFilterChipsPanel.Children.Add(chip);
+        }
+    }
+
+    private void ActiveFilterChip_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string key })
+        {
+            return;
+        }
+
+        switch (key)
+        {
+            case "search":
+                LiveSearchFilter.Text = "";
+                break;
+            case "species":
+                LiveSpeciesFilter.SelectedIndex = 0;
+                break;
+            case "trophy":
+                LiveTrophyFilter.SelectedIndex = 0;
+                break;
+            case "difficulty":
+                LiveDifficultyFilter.SelectedIndex = 0;
+                break;
+            case "fur":
+                LiveFurFilter.Text = "";
+                break;
+            case "sex":
+                LiveSexFilter.SelectedIndex = 0;
+                break;
+            case "rare":
+                LiveRareOnly.IsChecked = false;
+                break;
+            case "greatone":
+                LiveGreatOneOnly.IsChecked = false;
+                break;
+        }
+
+        ApplyLiveFilters(_latestLiveAnimals);
     }
 
     private static int ParseDifficultyLevel(
@@ -835,6 +917,18 @@ public partial class MainWindow : Window
         LiveAnimalsGrid.SelectedItem = animal;
         LiveAnimalsGrid.ScrollIntoView(animal);
         ShowSelectedAnimal(animal);
+    }
+
+    private void LiveAnimalsGrid_MouseDoubleClick(
+        object sender,
+        System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (LiveAnimalsGrid.SelectedItem is LiveAnimalView animal)
+        {
+            Radar.SelectedAnimal = animal;
+            Radar.StartFollowingAnimal(animal);
+            ShowSelectedAnimal(animal);
+        }
     }
 
     private void ShowSelectedAnimal(LiveAnimalView animal)
