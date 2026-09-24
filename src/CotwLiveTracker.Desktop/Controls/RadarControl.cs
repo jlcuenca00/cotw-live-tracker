@@ -531,14 +531,6 @@ public sealed class RadarControl : FrameworkElement
 
         drawingContext.Pop();
 
-        DrawLabel(
-            drawingContext,
-            "N",
-            new Point(
-                width / 2d - 5d,
-                12d),
-            TextBrush,
-            12d);
     }
 
     private static void DrawMapEdgeFade(
