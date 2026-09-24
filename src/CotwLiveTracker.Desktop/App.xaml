@@ -386,8 +386,8 @@
             <Setter Property="Padding" Value="15,12"/>
             <Setter Property="Margin" Value="8,3"/>
             <Setter Property="MinWidth" Value="164"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
