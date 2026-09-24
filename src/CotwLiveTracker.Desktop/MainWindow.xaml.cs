@@ -265,8 +265,12 @@ public partial class MainWindow : Window
     private void ApplyLiveFilters_Click(object sender, RoutedEventArgs e) =>
         ApplyLiveFilters(_latestLiveAnimals);
 
+    private void LiveFilters_Changed(object sender, RoutedEventArgs e) =>
+        ApplyLiveFilters(_latestLiveAnimals);
+
     private void ClearLiveFilters_Click(object sender, RoutedEventArgs e)
     {
+        LiveSearchFilter.Text = "";
         LiveSpeciesFilter.SelectedIndex = 0;
         LiveTrophyFilter.SelectedIndex = 0;
         LiveDifficultyFilter.SelectedIndex = 0;
@@ -289,6 +293,7 @@ public partial class MainWindow : Window
             species = null;
         }
 
+        var search = LiveSearchFilter.Text.Trim();
         var fur = LiveFurFilter.Text.Trim();
 
         var trophy = LiveTrophyFilter.SelectedItem as string;
@@ -325,6 +330,14 @@ public partial class MainWindow : Window
         }
 
         var filtered = animals
+            .Where(animal =>
+                string.IsNullOrWhiteSpace(search) ||
+                animal.DisplaySpecies.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                animal.Fur.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                animal.Trophy.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                animal.Gender.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                animal.Difficulty.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                animal.IdentityText.Contains(search, StringComparison.OrdinalIgnoreCase))
             .Where(animal =>
                 string.IsNullOrWhiteSpace(species) ||
                 animal.DisplaySpecies.Contains(
@@ -365,12 +378,19 @@ public partial class MainWindow : Window
         LiveFilterSummaryText.Text =
             $"{filtered.Length:N0} shown / {animals.Count:N0} loaded";
 
-        if (Radar.SelectedAnimal is { } selected &&
-            !filtered.Any(animal =>
-                animal.Address == selected.Address))
-        {
-            ClearSelectedAnimal();
-        }
+        var activeFilters = new List<string>();
+        if (!string.IsNullOrWhiteSpace(search)) activeFilters.Add($"search: {search}");
+        if (!string.IsNullOrWhiteSpace(species)) activeFilters.Add(species);
+        if (trophy is not null) activeFilters.Add(trophy);
+        if (difficulty is not null) activeFilters.Add($"level {difficulty}");
+        if (!string.IsNullOrWhiteSpace(fur)) activeFilters.Add(fur);
+        if (sex is not null) activeFilters.Add(sex);
+        if (LiveRareOnly.IsChecked == true) activeFilters.Add("rare");
+        if (LiveGreatOneOnly.IsChecked == true) activeFilters.Add("Great One");
+
+        ActiveFiltersText.Text = activeFilters.Count == 0
+            ? "No active filters"
+            : string.Join(" · ", activeFilters);
     }
 
     private static int ParseDifficultyLevel(
@@ -396,6 +416,9 @@ public partial class MainWindow : Window
     private void ApplyPopulationFilters_Click(object sender, RoutedEventArgs e) =>
         ApplyPopulationFilters();
 
+    private void PopulationFilters_Changed(object sender, RoutedEventArgs e) =>
+        ApplyPopulationFilters();
+
     private void ClearPopulationFilters_Click(object sender, RoutedEventArgs e)
     {
         PopulationSpeciesFilter.SelectedIndex = 0;
@@ -413,7 +436,10 @@ public partial class MainWindow : Window
         if (_session.Population is null)
         {
             PopulationGrid.ItemsSource = Array.Empty<PopulationAnimalView>();
-            PopulationMatchText.Text = "0 matches";
+            PopulationMatchText.Text = "0 / 0";
+            PopulationDiamondText.Text = "0";
+            PopulationRareText.Text = "0";
+            PopulationGreatOneText.Text = "0";
             return;
         }
 
@@ -472,7 +498,13 @@ public partial class MainWindow : Window
 
         PopulationGrid.ItemsSource = rows;
         PopulationMatchText.Text =
-            $"{rows.Length:N0} matches / {_session.Population.Animals.Count:N0} total";
+            $"{rows.Length:N0} / {_session.Population.Animals.Count:N0}";
+        PopulationDiamondText.Text = rows.Count(row =>
+            string.Equals(row.Trophy, "Diamond", StringComparison.OrdinalIgnoreCase)).ToString("N0");
+        PopulationRareText.Text = rows.Count(row =>
+            string.Equals(row.Rarity, "Rare", StringComparison.OrdinalIgnoreCase)).ToString("N0");
+        PopulationGreatOneText.Text = rows.Count(row =>
+            string.Equals(row.Trophy, "Great One", StringComparison.OrdinalIgnoreCase)).ToString("N0");
     }
 
     private async void BuildMapsFromGameButton_Click(
