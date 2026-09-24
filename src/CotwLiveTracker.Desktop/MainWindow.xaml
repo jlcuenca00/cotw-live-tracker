@@ -216,11 +216,11 @@
                     </Border>
 
                     <!-- FILTER INSTRUMENT -->
-                    <Border Width="226"
+                    <Border Width="232"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Stretch"
-                            Margin="18"
-                            Padding="14"
+                            Margin="20"
+                            Padding="16"
                             Background="#ED0D100C"
                             BorderBrush="#8A343A2F"
                             BorderThickness="1"
@@ -376,10 +376,10 @@
                     </Border>
 
                     <!-- TARGET / POPULATION INSTRUMENT -->
-                    <Border Width="382"
+                    <Border Width="390"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Stretch"
-                            Margin="18"
+                            Margin="20"
                             Background="#ED0D100C"
                             BorderBrush="#8A343A2F"
                             BorderThickness="1"
