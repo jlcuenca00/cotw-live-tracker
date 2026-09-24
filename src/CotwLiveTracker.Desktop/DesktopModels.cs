@@ -15,6 +15,8 @@ public sealed record LiveAnimalView(
     string Trophy,
     string Fur,
     string FurRarity,
+    float FurProbability,
+    string NextTrophyText,
     bool IsRare,
     bool IsGreatOne,
     float DistanceMeters,
@@ -37,6 +39,7 @@ public sealed record LiveAnimalView(
     public string HealthText => $"{Health:F0}/{MaxHealth:F0}";
     public string WeightText => $"{Weight:F2}";
     public string ScoreText => $"{Score:F2}";
+    public string FurProbabilityText => FurProbability > 0f ? $"{FurProbability * 100f:F3}%" : "—";
     public string GroupText => GroupIndex is null ? "—" : $"G{GroupIndex}";
     public string IdentityText => GroupIndex is null || AnimalIndex is null
         ? "Unresolved"
