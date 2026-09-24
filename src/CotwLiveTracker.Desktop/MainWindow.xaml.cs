@@ -529,7 +529,7 @@ public partial class MainWindow : Window
             .ToArray();
         IProgress<string> progress = new Progress<string>(message =>
         {
-            MapModeStatusText.Text = message;
+            SettingsMapStatusText.Text = message;
         });
 
         BuildMapsFromGameButton.IsEnabled = false;
@@ -586,7 +586,7 @@ public partial class MainWindow : Window
 
             if (result.Installed.Count == 0)
             {
-                MapModeStatusText.Text =
+                SettingsMapStatusText.Text =
                     "No known reserve map assets were found in the installed archives.";
                 MessageBox.Show(
                     this,
@@ -630,7 +630,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MapModeStatusText.Text =
+            SettingsMapStatusText.Text =
                 $"Map extraction failed · {ex.Message}";
             MessageBox.Show(
                 this,
@@ -704,9 +704,9 @@ public partial class MainWindow : Window
                 calibration,
                 applyCalibrationCrop: false);
             _centerMapOnNextSnapshot = true;
-            MapModeStatusText.Text =
-                $"{reserve.Name} · calibrated actual-map mode";
-            LoadMapImageButton.Content = "Replace map";
+            MapModeStatusText.Text = reserve.Name;
+            SettingsMapStatusText.Text =
+                $"{reserve.Name} map loaded from a manual image.";
         }
         catch (Exception ex)
         {
@@ -734,16 +734,18 @@ public partial class MainWindow : Window
                 ? "Map not cached · calibration pending · relative radar fallback"
                 : "Map cached · calibration pending · relative radar fallback";
             LoadMapImageButton.IsEnabled = false;
-            LoadMapImageButton.Content = "Load image";
+            SettingsMapStatusText.Text = mapPath is null
+                ? "Map cache not found. Build maps from the installed game."
+                : "Map cache exists, but this reserve has no verified calibration yet.";
             return;
         }
 
         LoadMapImageButton.IsEnabled = true;
         if (mapPath is null)
         {
-            MapModeStatusText.Text =
-                $"{calibration.ReserveName} calibrated · build maps or load image";
-            LoadMapImageButton.Content = "Load image";
+            MapModeStatusText.Text = calibration.ReserveName;
+            SettingsMapStatusText.Text =
+                "Verified calibration available. Build maps from the game or load an image.";
             return;
         }
 
@@ -767,23 +769,23 @@ public partial class MainWindow : Window
             _centerMapOnNextSnapshot = true;
 
             var cropStatus = applyCalibrationCrop
-                ? $" · image crop {1d / calibration.ImageCropWidth:F3}x"
+                ? $" · calibrated crop {1d / calibration.ImageCropWidth:F3}x"
                 : "";
 
-            MapModeStatusText.Text =
-                $"{calibration.ReserveName} · calibrated actual-map mode" +
+            MapModeStatusText.Text = calibration.ReserveName;
+            SettingsMapStatusText.Text =
+                $"{calibration.ReserveName} · map ready" +
                 (string.IsNullOrWhiteSpace(mapSource)
                     ? ""
                     : $" · source {mapSource}") +
                 cropStatus;
-            LoadMapImageButton.Content = "Replace image";
         }
         catch (Exception ex)
         {
             Radar.MapImage = null;
-            MapModeStatusText.Text =
+            MapModeStatusText.Text = "Map unavailable";
+            SettingsMapStatusText.Text =
                 $"Saved map failed to load · {ex.Message}";
-            LoadMapImageButton.Content = "Load image";
         }
     }
 
@@ -838,26 +840,44 @@ public partial class MainWindow : Window
     private void ShowSelectedAnimal(LiveAnimalView animal)
     {
         FollowSelectedAnimalButton.IsEnabled = Radar.IsMapMode;
-        SelectedAnimalTitle.Text =
-            $"{animal.DisplaySpecies} · {animal.DistanceMeters:F0} m";
 
-        var levelText = animal.Difficulty.StartsWith(
-            "~",
-            StringComparison.Ordinal)
-            ? $"{animal.Difficulty} (weight estimate)"
-            : animal.Difficulty;
+        SelectedAnimalTitle.Text = animal.DisplaySpecies;
+        SelectedDistanceText.Text = $"{animal.DistanceMeters:F0} m from player";
+        SelectedGenderText.Text = animal.Gender;
+        SelectedDifficultyText.Text = animal.Difficulty;
+        SelectedTrophyText.Text = animal.Trophy;
+        SelectedScoreText.Text = animal.Score > 0f ? $"{animal.Score:F2}" : "—";
+        SelectedWeightText.Text = animal.Weight > 0f ? $"{animal.Weight:F2} kg" : "—";
+        SelectedHealthText.Text = $"{animal.Health:F0} / {animal.MaxHealth:F0}";
 
-        SelectedAnimalDetails.Text =
-            $"Identity : {animal.IdentityText}\n" +
-            $"Gender   : {animal.Gender}\n" +
-            $"Level    : {levelText}\n" +
-            $"Trophy   : {animal.Trophy}\n" +
-            $"Fur      : {animal.Fur} ({animal.FurRarity})\n" +
-            $"Weight   : {animal.Weight:F2}\n" +
-            $"Score    : {animal.Score:F2}\n" +
-            $"Health   : {animal.Health:F1}/{animal.MaxHealth:F1}\n" +
-            $"XYZ      : {animal.X:F1}, {animal.Y:F1}, {animal.Z:F1}\n" +
-            $"Seed     : {animal.VisualVariationSeed}";
+        SelectedFurText.Text = animal.IsRare && animal.FurProbability > 0f
+            ? $"{animal.Fur} · {animal.FurProbabilityText}"
+            : animal.Fur;
+
+        SelectedThresholdText.Text = animal.NextTrophyText;
+
+        var trophyBrush = TrophyBrush(animal);
+        SelectedTrophyBadge.BorderBrush = trophyBrush;
+        SelectedTrophyText.Foreground = trophyBrush;
+
+        var technical = new List<string>();
+        if (_showGroupInfo)
+        {
+            technical.Add($"Identity  {animal.IdentityText}");
+        }
+
+        if (_showCoordinates)
+        {
+            technical.Add($"XYZ       {animal.X:F1}, {animal.Y:F1}, {animal.Z:F1}");
+        }
+
+        technical.Add($"Seed      {animal.VisualVariationSeed}");
+        technical.Add($"Address   0x{animal.Address.ToInt64():X}");
+        SelectedTechnicalText.Text = string.Join(Environment.NewLine, technical);
+        SelectedTechnicalPanel.Visibility =
+            _showDeveloperDetails
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
         UpdateFollowUi();
     }
@@ -867,11 +887,71 @@ public partial class MainWindow : Window
         Radar.SelectedAnimal = null;
         LiveAnimalsGrid.SelectedItem = null;
         FollowSelectedAnimalButton.IsEnabled = false;
-        SelectedAnimalTitle.Text =
-            "Click a radar marker or live row";
-        SelectedAnimalDetails.Text =
-            "Distance, identity, score, fur and XYZ will appear here.";
+
+        SelectedAnimalTitle.Text = "Select an animal";
+        SelectedDistanceText.Text = "Click a marker or loaded animal";
+        SelectedGenderText.Text = "—";
+        SelectedDifficultyText.Text = "—";
+        SelectedTrophyText.Text = "—";
+        SelectedScoreText.Text = "—";
+        SelectedWeightText.Text = "—";
+        SelectedFurText.Text = "—";
+        SelectedHealthText.Text = "—";
+        SelectedThresholdText.Text = "Select an animal to see trophy threshold context.";
+        SelectedTechnicalText.Text = "—";
+        SelectedTrophyBadge.BorderBrush = (Brush)FindResource("BorderBrush");
+
         UpdateFollowUi();
+    }
+
+    private Brush TrophyBrush(LiveAnimalView animal)
+    {
+        if (animal.IsGreatOne ||
+            ParseDifficultyLevel(animal.Difficulty) >= 10)
+        {
+            return (Brush)FindResource("DangerBrush");
+        }
+
+        if (string.Equals(animal.Trophy, "Diamond", StringComparison.OrdinalIgnoreCase) ||
+            ParseDifficultyLevel(animal.Difficulty) >= 9)
+        {
+            return (Brush)FindResource("DiamondBrush");
+        }
+
+        if (string.Equals(animal.Trophy, "Gold", StringComparison.OrdinalIgnoreCase))
+        {
+            return (Brush)FindResource("GoldBrush");
+        }
+
+        if (string.Equals(animal.Trophy, "Silver", StringComparison.OrdinalIgnoreCase))
+        {
+            return (Brush)FindResource("SilverBrush");
+        }
+
+        return animal.IsRare
+            ? (Brush)FindResource("RareBrush")
+            : (Brush)FindResource("NormalBrush");
+    }
+
+    private void InterfaceSettings_Changed(object sender, RoutedEventArgs e)
+    {
+        Topmost = AlwaysOnTopCheck.IsChecked == true;
+        _showGroupInfo = ShowGroupCheck.IsChecked == true;
+        _showCoordinates = ShowCoordinatesCheck.IsChecked == true;
+        _showDeveloperDetails = ShowDeveloperCheck.IsChecked == true;
+        Radar.ShowReferences = ShowOutpostsCheck.IsChecked == true;
+
+        if (Radar.SelectedAnimal is { } selected)
+        {
+            ShowSelectedAnimal(selected);
+        }
+        else
+        {
+            SelectedTechnicalPanel.Visibility =
+                _showDeveloperDetails
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+        }
     }
 
     private void FollowPlayerButton_Click(
@@ -935,36 +1015,41 @@ public partial class MainWindow : Window
 
         var accent = (Brush)FindResource("AccentBrush");
         var secondary = (Brush)FindResource("TextSecondary");
+        var raised = (Brush)FindResource("PanelRaised");
+        var muted = (Brush)FindResource("AccentMuted");
+        var border = (Brush)FindResource("BorderStrong");
 
-        FollowPlayerButton.Content =
-            Radar.FollowMode == RadarFollowMode.Player
-                ? "Following player"
-                : "Follow player";
+        var followingPlayer = Radar.FollowMode == RadarFollowMode.Player;
+        FollowPlayerButton.Background = followingPlayer ? muted : raised;
+        FollowPlayerButton.BorderBrush = followingPlayer ? accent : border;
 
         StopFollowingButton.IsEnabled =
             Radar.FollowMode != RadarFollowMode.None;
 
         var selected = Radar.SelectedAnimal;
+        var followingSelected =
+            Radar.FollowMode == RadarFollowMode.Animal &&
+            selected is not null &&
+            Radar.FollowedAnimal?.Address == selected.Address;
+
         FollowSelectedAnimalButton.IsEnabled =
             Radar.IsMapMode &&
             selected is not null;
-        FollowSelectedAnimalButton.Content =
-            Radar.FollowMode == RadarFollowMode.Animal &&
-            selected is not null &&
-            Radar.FollowedAnimal?.Address == selected.Address
-                ? "Following"
-                : "Follow animal";
+        FollowSelectedAnimalButton.Background =
+            followingSelected ? muted : (Brush)FindResource("PanelRaised");
+        FollowSelectedAnimalButton.BorderBrush =
+            followingSelected ? accent : border;
 
         switch (Radar.FollowMode)
         {
             case RadarFollowMode.Player:
-                FollowingStatusText.Text = "Following: player";
+                FollowingStatusText.Text = "FOLLOWING PLAYER";
                 FollowingStatusText.Foreground = accent;
                 break;
 
             case RadarFollowMode.Animal when Radar.FollowedAnimal is { } animal:
                 FollowingStatusText.Text =
-                    $"Following: {animal.DisplaySpecies} · {animal.Gender} · {animal.Difficulty}";
+                    $"FOLLOWING · {animal.DisplaySpecies} · {animal.Difficulty}";
                 FollowingStatusText.Foreground = accent;
                 break;
 
@@ -1045,10 +1130,10 @@ public partial class MainWindow : Window
     private void SetConnected()
     {
         BuildMapsFromGameButton.IsEnabled = true;
-        StatusText.Text = $"Connected · PID {_session.ProcessId}";
-        StatusText.Foreground = new SolidColorBrush(Color.FromRgb(187, 247, 208));
-        StatusPill.Background = new SolidColorBrush(Color.FromRgb(20, 83, 45));
-        StatusPill.BorderBrush = new SolidColorBrush(Color.FromRgb(34, 197, 94));
+        StatusText.Text = "COTW CONNECTED";
+        StatusText.Foreground = (Brush)FindResource("GoodBrush");
+        StatusPill.Background = new SolidColorBrush(Color.FromRgb(18, 31, 20));
+        StatusPill.BorderBrush = new SolidColorBrush(Color.FromRgb(49, 91, 57));
     }
 
     private void SetOffline(string message)
@@ -1059,9 +1144,9 @@ public partial class MainWindow : Window
         }
 
         StatusText.Text = "Offline";
-        StatusText.Foreground = new SolidColorBrush(Color.FromRgb(203, 213, 225));
-        StatusPill.Background = new SolidColorBrush(Color.FromRgb(31, 41, 55));
-        StatusPill.BorderBrush = new SolidColorBrush(Color.FromRgb(71, 85, 105));
+        StatusText.Foreground = (Brush)FindResource("TextSecondary");
+        StatusPill.Background = (Brush)FindResource("PanelRaised");
+        StatusPill.BorderBrush = (Brush)FindResource("BorderBrush");
         RuntimeStatusText.Text = message;
     }
 }
