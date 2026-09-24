@@ -56,49 +56,62 @@
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
                     <Border x:Name="StatusPill"
-                            Background="#171A14"
+                            Height="34"
+                            MinWidth="78"
+                            Background="#141711"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1"
                             CornerRadius="4"
-                            Padding="10,6"
+                            Padding="10,0"
                             Margin="{StaticResource ControlGap}">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="6" Height="6"
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                            <Ellipse Width="6"
+                                     Height="6"
                                      Fill="{StaticResource TextFaint}"
                                      Margin="{StaticResource InlineGap}"
                                      VerticalAlignment="Center"/>
                             <TextBlock x:Name="StatusText"
                                        Text="Offline"
                                        Foreground="{StaticResource TextSecondary}"
-                                       FontSize="11"
-                                       FontWeight="SemiBold"/>
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
 
-                    <Grid Width="286" Margin="{StaticResource ControlGap}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="30"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <fa:IconBlock Icon="Map"
-                                      Foreground="{StaticResource AccentBrush}"
-                                      FontSize="12"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
-                                      Panel.ZIndex="2"/>
+                    <StackPanel Orientation="Horizontal"
+                                Height="34"
+                                Margin="{StaticResource ControlGap}">
+                        <Border Width="34"
+                                Height="34"
+                                Margin="0,0,6,0"
+                                Background="#151811"
+                                BorderBrush="{StaticResource BorderStrong}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                            <fa:IconBlock Icon="Map"
+                                          Foreground="{StaticResource AccentBrush}"
+                                          FontSize="11"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                        </Border>
                         <ComboBox x:Name="ReserveBox"
-                                  Grid.ColumnSpan="2"
-                                  Padding="32,6,10,6"
+                                  Width="250"
+                                  Height="34"
+                                  Padding="10,6"
                                   DisplayMemberPath="Name"
                                   SelectionChanged="ReserveBox_SelectionChanged"/>
-                    </Grid>
+                    </StackPanel>
 
                     <Button x:Name="AttachButton"
+                            Height="34"
                             Style="{StaticResource PrimaryButton}"
                             Click="AttachButton_Click">
                         <StackPanel Orientation="Horizontal">
-                            <fa:IconBlock Icon="Plug" FontSize="12" Margin="{StaticResource InlineGap}"/>
-                            <TextBlock Text="Attach"/>
+                            <fa:IconBlock Icon="Plug" FontSize="11" Margin="{StaticResource InlineGap}"/>
+                            <TextBlock Text="Attach" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -193,30 +206,6 @@
                                 <GradientStop Color="#E6080A07" Offset="1"/>
                             </LinearGradientBrush>
                         </Border.Background>
-                    </Border>
-
-                    <!-- Small map state tag -->
-                    <Border HorizontalAlignment="Center"
-                            VerticalAlignment="Top"
-                            Margin="270,20,428,0"
-                            Padding="10,6"
-                            Background="#DC0D100C"
-                            BorderBrush="#76353B30"
-                            BorderThickness="1"
-                            CornerRadius="4">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="5"
-                                     Height="5"
-                                     Fill="{StaticResource AccentBrush}"
-                                     VerticalAlignment="Center"
-                                     Margin="{StaticResource InlineGap}"/>
-                            <TextBlock x:Name="MapModeStatusText"
-                                       Text="Reserve map"
-                                       Foreground="{StaticResource TextSecondary}"
-                                       FontFamily="Bahnschrift SemiCondensed, Segoe UI"
-                                       FontWeight="SemiBold"
-                                       FontSize="10"/>
-                        </StackPanel>
                     </Border>
 
                     <!-- FILTER INSTRUMENT -->
@@ -728,39 +717,68 @@
                         </Grid>
                     </Border>
 
-                    <!-- Following state -->
-                    <Border HorizontalAlignment="Center"
-                            VerticalAlignment="Top"
-                            Margin="270,60,428,0"
-                            Padding="10,6"
-                            Background="#E80D100C"
-                            BorderBrush="#74413B2B"
-                            BorderThickness="1"
-                            CornerRadius="4">
-                        <StackPanel Orientation="Horizontal">
-                            <fa:IconBlock Icon="LocationCrosshairs"
-                                          Foreground="{StaticResource AccentBrush}"
-                                          FontSize="9"
-                                          Margin="{StaticResource InlineGap}"
-                                          VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FollowingStatusText"
-                                       Text="Free navigation"
-                                       Foreground="{StaticResource TextSecondary}"
-                                       FontSize="9"
-                                       FontWeight="SemiBold"/>
-                            <Button x:Name="StopFollowingButton"
-                                    Style="{StaticResource QuietButton}"
-                                    Width="24"
-                                    Height="24"
-                                    Padding="0"
-                                    Margin="8,0,0,0"
-                                    IsEnabled="False"
-                                    Click="StopFollowingButton_Click"
-                                    ToolTip="Stop following">
-                                <fa:IconBlock Icon="Xmark" FontSize="8"/>
-                            </Button>
-                        </StackPanel>
-                    </Border>
+                    <!-- Unified map telemetry HUD -->
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Top"
+                                Orientation="Horizontal"
+                                Margin="270,18,428,0">
+                        <Border Height="30"
+                                Padding="10,0"
+                                Background="#E80D100C"
+                                BorderBrush="#74413B2B"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                            <StackPanel Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <Ellipse Width="5"
+                                         Height="5"
+                                         Fill="{StaticResource AccentBrush}"
+                                         Margin="{StaticResource InlineGap}"
+                                         VerticalAlignment="Center"/>
+                                <TextBlock x:Name="MapModeStatusText"
+                                           Text="Reserve map"
+                                           Foreground="{StaticResource TextSecondary}"
+                                           FontFamily="Bahnschrift SemiCondensed, Segoe UI"
+                                           FontWeight="SemiBold"
+                                           FontSize="9"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Height="30"
+                                Margin="8,0,0,0"
+                                Padding="10,0"
+                                Background="#E80D100C"
+                                BorderBrush="#74413B2B"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                            <StackPanel Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <fa:IconBlock Icon="LocationCrosshairs"
+                                              Foreground="{StaticResource AccentBrush}"
+                                              FontSize="9"
+                                              Margin="{StaticResource InlineGap}"
+                                              VerticalAlignment="Center"/>
+                                <TextBlock x:Name="FollowingStatusText"
+                                           Text="Free navigation"
+                                           Foreground="{StaticResource TextSecondary}"
+                                           FontSize="9"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                                <Button x:Name="StopFollowingButton"
+                                        Style="{StaticResource QuietButton}"
+                                        Width="22"
+                                        Height="22"
+                                        Padding="0"
+                                        Margin="8,0,0,0"
+                                        IsEnabled="False"
+                                        Click="StopFollowingButton_Click"
+                                        ToolTip="Stop following">
+                                    <fa:IconBlock Icon="Xmark" FontSize="8"/>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
 
                     <!-- Map command dock -->
                     <Border HorizontalAlignment="Center"
