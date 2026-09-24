@@ -119,14 +119,26 @@ internal static class TrackerSelfTest
     {
         var memory = new SparseMemoryReader();
         var entityAddress = Ptr(0x0000010000030000L);
+        var difficultyObjectAddress = Ptr(0x0000010000034000L);
         var entityBytes = new byte[0x300];
+        var difficultyObjectBytes = new byte[0x80];
 
         BinaryPrimitives.WriteInt32LittleEndian(
             entityBytes.AsSpan(0x1A8, sizeof(int)),
             2);
+        BinaryPrimitives.WriteInt64LittleEndian(
+            entityBytes.AsSpan(0x18, sizeof(long)),
+            difficultyObjectAddress.ToInt64());
+        BinaryPrimitives.WriteInt32LittleEndian(
+            difficultyObjectBytes.AsSpan(0x08, sizeof(int)),
+            2);
+
         memory.Add(
             entityAddress,
             entityBytes);
+        memory.Add(
+            difficultyObjectAddress,
+            difficultyObjectBytes);
 
         var result = AnimalDifficultyMemoryProbe.Probe(
             memory,
@@ -140,6 +152,22 @@ internal static class TrackerSelfTest
         {
             throw new InvalidOperationException(
                 "Native difficulty probe did not surface the synthetic level field.");
+        }
+
+        if (result.PreferredCandidateLevel != 2)
+        {
+            throw new InvalidOperationException(
+                $"Expected preferred native-level candidate 2, got {result.PreferredCandidateLevel?.ToString() ?? "null"}.");
+        }
+
+        var directCandidate =
+            AnimalDifficultyMemoryProbe.TryReadPreferredCandidate(
+                memory,
+                entityAddress);
+        if (directCandidate != 2)
+        {
+            throw new InvalidOperationException(
+                $"Preferred native-level reader returned {directCandidate?.ToString() ?? "null"} instead of 2.");
         }
     }
 
