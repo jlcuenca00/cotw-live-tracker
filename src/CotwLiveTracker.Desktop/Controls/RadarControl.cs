@@ -292,6 +292,7 @@ public sealed class RadarControl : FrameworkElement
         }
 
         _mapPan = -baseVector * _mapZoom;
+        ClampMapPan();
         InvalidateVisual();
     }
 
@@ -371,6 +372,7 @@ public sealed class RadarControl : FrameworkElement
             MinimumMapZoom,
             MaximumMapZoom);
         _mapPan = default;
+        ClampMapPan();
         _fillViewportOnNextRender = false;
 
         MapZoomChanged?.Invoke(_mapZoom);
@@ -915,6 +917,7 @@ public sealed class RadarControl : FrameworkElement
         _mapPan =
             _panAtDragStart +
             delta;
+        ClampMapPan();
         InvalidateVisual();
         e.Handled = true;
     }
@@ -1024,6 +1027,8 @@ public sealed class RadarControl : FrameworkElement
             _mapPan = default;
         }
 
+        ClampMapPan();
+
         MapZoomChanged?.Invoke(
             _mapZoom);
 
@@ -1041,6 +1046,38 @@ public sealed class RadarControl : FrameworkElement
         }
 
         InvalidateVisual();
+    }
+
+    private void ClampMapPan()
+    {
+        if (!IsMapMode ||
+            MapImage is null ||
+            ActualWidth <= 0d ||
+            ActualHeight <= 0d)
+        {
+            return;
+        }
+
+        var fitted = FitImageRect(
+            MapImage.Width,
+            MapImage.Height,
+            ActualWidth,
+            ActualHeight,
+            10d);
+
+        var scaledWidth = fitted.Width * _mapZoom;
+        var scaledHeight = fitted.Height * _mapZoom;
+
+        var maxPanX = scaledWidth > ActualWidth
+            ? (scaledWidth - ActualWidth) / 2d
+            : 0d;
+        var maxPanY = scaledHeight > ActualHeight
+            ? (scaledHeight - ActualHeight) / 2d
+            : 0d;
+
+        _mapPan = new Vector(
+            Math.Clamp(_mapPan.X, -maxPanX, maxPanX),
+            Math.Clamp(_mapPan.Y, -maxPanY, maxPanY));
     }
 
     private Point ViewCenter() =>
