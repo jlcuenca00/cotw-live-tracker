@@ -88,7 +88,7 @@
                                       Panel.ZIndex="2"/>
                         <ComboBox x:Name="ReserveBox"
                                   Grid.ColumnSpan="2"
-                                  Padding="32,6,9,6"
+                                  Padding="32,6,10,6"
                                   DisplayMemberPath="Name"
                                   SelectionChanged="ReserveBox_SelectionChanged"/>
                     </Grid>
@@ -129,7 +129,7 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <fa:IconBlock Icon="Map" FontSize="13" Width="20" Margin="{StaticResource ControlGap}"/>
+                        <fa:IconBlock Icon="Map" FontSize="13" Width="20" Margin="{StaticResource InlineGap}"/>
                         <TextBlock Text="LIVE MAP"/>
                     </StackPanel>
                 </TabItem.Header>
@@ -254,7 +254,7 @@
                                         <fa:IconBlock Icon="Sliders"
                                                       Foreground="{StaticResource AccentBrush}"
                                                       FontSize="11"
-                                                      Margin="{StaticResource ControlGap}"
+                                                      Margin="{StaticResource InlineGap}"
                                                       VerticalAlignment="Center"/>
                                         <TextBlock Text="FILTER ANIMALS"
                                                    FontFamily="Bahnschrift SemiCondensed, Segoe UI"
@@ -286,7 +286,7 @@
                                               VerticalAlignment="Center"
                                               Panel.ZIndex="2"/>
                                 <TextBox x:Name="LiveSearchFilter"
-                                         Padding="30,6,8,6"
+                                         Padding="30,6,10,6"
                                          ToolTip="Search species, fur, trophy, sex or level"
                                          TextChanged="LiveFilters_Changed"/>
                                 <TextBlock Text="Search loaded animals"
@@ -416,7 +416,7 @@
                                         CornerRadius="6,0,0,0"/>
 
                                 <Grid Grid.Column="1"
-                                      Margin="18,18,18,16">
+                                      Margin="18">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
@@ -473,7 +473,7 @@
                                     <StackPanel x:Name="SelectedBadgesPanel"
                                                 Grid.Row="1"
                                                 Orientation="Horizontal"
-                                                Margin="0,15,0,14"
+                                                Margin="0,16,0,16"
                                                 Visibility="Collapsed">
                                         <Border Background="#1B1E18"
                                                 BorderBrush="#41483A"
@@ -526,7 +526,7 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <StackPanel Margin="0,4,12,12">
+                                        <StackPanel Margin="0,4,16,16">
                                             <TextBlock Text="TROPHY SCORE" Style="{StaticResource SectionLabel}"/>
                                             <TextBlock x:Name="SelectedScoreText"
                                                        Text="—"
@@ -537,7 +537,7 @@
                                                 Grid.RowSpan="3"
                                                 Background="{StaticResource BorderBrush}"/>
                                         <StackPanel Grid.Column="2"
-                                                    Margin="14,4,0,12">
+                                                    Margin="16,4,0,16">
                                             <TextBlock Text="WEIGHT" Style="{StaticResource SectionLabel}"/>
                                             <TextBlock x:Name="SelectedWeightText"
                                                        Text="—"
@@ -550,7 +550,7 @@
                                                 Background="{StaticResource BorderBrush}"/>
 
                                         <StackPanel Grid.Row="2"
-                                                    Margin="0,12,12,0">
+                                                    Margin="0,16,16,0">
                                             <TextBlock Text="FUR TYPE" Style="{StaticResource SectionLabel}"/>
                                             <TextBlock x:Name="SelectedFurText"
                                                        Text="—"
@@ -560,7 +560,7 @@
                                         </StackPanel>
                                         <StackPanel Grid.Row="2"
                                                     Grid.Column="2"
-                                                    Margin="14,12,0,0">
+                                                    Margin="16,16,0,0">
                                             <TextBlock Text="HEALTH" Style="{StaticResource SectionLabel}"/>
                                             <TextBlock x:Name="SelectedHealthText"
                                                        Text="—"
@@ -577,7 +577,7 @@
                                                 BorderBrush="#4A351C"
                                                 BorderThickness="1"
                                                 CornerRadius="4"
-                                                Padding="9,7">
+                                                Padding="10,8">
                                             <TextBlock x:Name="SelectedThresholdText"
                                                        Text="Trophy threshold context"
                                                        Foreground="#E8C68E"
@@ -628,7 +628,7 @@
                                         <fa:IconBlock Icon="Paw"
                                                       Foreground="{StaticResource AccentBrush}"
                                                       FontSize="10"
-                                                      Margin="{StaticResource ControlGap}"/>
+                                                      Margin="{StaticResource InlineGap}"/>
                                         <TextBlock Text="LOADED ANIMALS"
                                                    FontFamily="Bahnschrift SemiCondensed, Segoe UI"
                                                    FontWeight="SemiBold"
@@ -667,7 +667,7 @@
                                             <DataGridTemplateColumn Width="*">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
-                                                        <Grid Margin="5,3,12,3">
+                                                        <Grid Margin="4,4,12,4">
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="4"/>
                                                                 <ColumnDefinition Width="*"/>
@@ -681,7 +681,7 @@
                                                                     CornerRadius="2"/>
 
                                                             <StackPanel Grid.Column="1"
-                                                                        Margin="11,0,10,0"
+                                                                        Margin="12,0"
                                                                         VerticalAlignment="Center">
                                                                 <TextBlock Text="{Binding DisplaySpecies}"
                                                                            FontFamily="Bahnschrift SemiCondensed, Segoe UI"
@@ -732,7 +732,7 @@
                     <Border HorizontalAlignment="Center"
                             VerticalAlignment="Top"
                             Margin="270,60,428,0"
-                            Padding="9,6"
+                            Padding="10,6"
                             Background="#E80D100C"
                             BorderBrush="#74413B2B"
                             BorderThickness="1"
@@ -750,10 +750,10 @@
                                        FontWeight="SemiBold"/>
                             <Button x:Name="StopFollowingButton"
                                     Style="{StaticResource QuietButton}"
-                                    Width="23"
-                                    Height="20"
+                                    Width="24"
+                                    Height="24"
                                     Padding="0"
-                                    Margin="7,-3,-4,-3"
+                                    Margin="8,0,0,0"
                                     IsEnabled="False"
                                     Click="StopFollowingButton_Click"
                                     ToolTip="Stop following">
@@ -804,7 +804,7 @@
 
                             <Border Width="1"
                                     Height="20"
-                                    Margin="6,6"
+                                    Margin="8,6"
                                     Background="{StaticResource BorderStrong}"/>
 
                             <Button Style="{StaticResource IconButton}"
@@ -842,7 +842,7 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <fa:IconBlock Icon="Database" FontSize="13" Width="20" Margin="{StaticResource ControlGap}"/>
+                        <fa:IconBlock Icon="Database" FontSize="13" Width="20" Margin="{StaticResource InlineGap}"/>
                         <TextBlock Text="POPULATION"/>
                     </StackPanel>
                 </TabItem.Header>
@@ -890,7 +890,7 @@
                     <Border Grid.Row="1"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="0,1,0,1">
-                        <WrapPanel VerticalAlignment="Center" Margin="0,13">
+                        <WrapPanel VerticalAlignment="Center" Margin="0,12">
                             <ComboBox x:Name="PopulationSpeciesFilter"
                                       Width="170"
                                       Margin="{StaticResource ControlGap}"
@@ -963,7 +963,7 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <fa:IconBlock Icon="Sliders" FontSize="13" Width="20" Margin="{StaticResource ControlGap}"/>
+                        <fa:IconBlock Icon="Sliders" FontSize="13" Width="20" Margin="{StaticResource InlineGap}"/>
                         <TextBlock Text="CONTROL CENTER"/>
                     </StackPanel>
                 </TabItem.Header>
@@ -990,40 +990,40 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="INTERFACE" Style="{StaticResource SectionLabel}" Margin="0,0,0,14"/>
+                                <TextBlock Text="INTERFACE" Style="{StaticResource SectionLabel}" Margin="{StaticResource FieldGap}"/>
 
                                 <CheckBox x:Name="AlwaysOnTopCheck"
                                           Content="Always on top"
-                                          Margin="0,0,0,12"
+                                          Margin="{StaticResource ControlGap}"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowGroupCheck"
                                           Content="Show herd / group identity"
                                           IsChecked="True"
-                                          Margin="0,0,0,14"
+                                          Margin="{StaticResource ControlGap}"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowCoordinatesCheck"
                                           Content="Show world coordinates"
                                           IsChecked="True"
-                                          Margin="0,0,0,14"
+                                          Margin="{StaticResource ControlGap}"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowDeveloperCheck"
                                           Content="Show developer details"
-                                          Margin="0,0,0,12"
+                                          Margin="{StaticResource ControlGap}"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowOutpostsCheck"
                                           Content="Show outpost calibration references on map"
                                           IsChecked="True"
-                                          Margin="0,0,0,14"
+                                          Margin="{StaticResource ControlGap}"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
 
                                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,12,0,20"/>
 
-                                <TextBlock Text="MAP SETUP" Style="{StaticResource SectionLabel}" Margin="0,0,0,14"/>
+                                <TextBlock Text="MAP SETUP" Style="{StaticResource SectionLabel}" Margin="{StaticResource FieldGap}"/>
                                 <TextBlock x:Name="SettingsMapStatusText"
                                            Text="Map setup status"
                                            Foreground="{StaticResource TextSecondary}"
@@ -1051,7 +1051,7 @@
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
-                                <TextBlock Text="RUNTIME" Style="{StaticResource SectionLabel}" Margin="0,0,0,14"/>
+                                <TextBlock Text="RUNTIME" Style="{StaticResource SectionLabel}" Margin="{StaticResource FieldGap}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="120"/>
@@ -1106,7 +1106,7 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <fa:IconBlock Icon="CircleInfo" FontSize="13" Width="20" Margin="{StaticResource ControlGap}"/>
+                        <fa:IconBlock Icon="CircleInfo" FontSize="13" Width="20" Margin="{StaticResource InlineGap}"/>
                         <TextBlock Text="ABOUT"/>
                     </StackPanel>
                 </TabItem.Header>
@@ -1115,7 +1115,7 @@
                         <TextBlock Text="WildTrace" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="A read-only COTW live radar and population intelligence tool."
                                    Foreground="{StaticResource TextSecondary}"
-                                   Margin="0,4,0,22"/>
+                                   Margin="0,4,0,24"/>
                         <TextBlock Text="DESIGN DIRECTION" Style="{StaticResource SectionLabel}"/>
                         <TextBlock Text="Purpose-built for hunting telemetry: map first, fast target scanning, dense population data only where density is useful."
                                    TextWrapping="Wrap"
