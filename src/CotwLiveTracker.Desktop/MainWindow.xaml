@@ -11,7 +11,7 @@
         WindowStartupLocation="CenterScreen">
     <Grid Background="{StaticResource AppBackground}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="58"/>
+            <RowDefinition Height="62"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -20,7 +20,7 @@
                 Background="#0E100D"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
-            <Grid Margin="14,0">
+            <Grid Margin="18,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -33,7 +33,7 @@
                             BorderBrush="#58401F"
                             BorderThickness="1"
                             CornerRadius="4"
-                            Margin="0,0,10,0">
+                            Margin="0,0,12,0">
                         <fa:IconBlock Icon="Crosshairs"
                                       Foreground="{StaticResource AccentBright}"
                                       FontSize="15"
@@ -61,7 +61,7 @@
                             BorderThickness="1"
                             CornerRadius="4"
                             Padding="10,6"
-                            Margin="0,0,8,0">
+                            Margin="0,0,10,0">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Width="6" Height="6"
                                      Fill="{StaticResource TextFaint}"
@@ -75,7 +75,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Grid Width="286" Margin="0,0,8,0">
+                    <Grid Width="286" Margin="0,0,10,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="30"/>
                             <ColumnDefinition Width="*"/>
@@ -194,7 +194,7 @@
                     <!-- Small map state tag -->
                     <Border HorizontalAlignment="Center"
                             VerticalAlignment="Top"
-                            Margin="0,16,0,0"
+                            Margin="0,18,0,0"
                             Padding="10,6"
                             Background="#DC0D100C"
                             BorderBrush="#76353B30"
@@ -240,7 +240,7 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <Grid Grid.Row="0" Margin="0,0,0,14">
+                            <Grid Grid.Row="0" Margin="0,0,0,16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -273,7 +273,7 @@
                             </Grid>
 
                             <Grid Grid.Row="1"
-                                  Margin="0,0,0,15">
+                                  Margin="0,0,0,16">
                                 <fa:IconBlock Icon="MagnifyingGlass"
                                               Foreground="{StaticResource TextFaint}"
                                               FontSize="10"
@@ -310,22 +310,22 @@
                                 <StackPanel>
                                     <TextBlock Text="SPECIES" Style="{StaticResource SectionLabel}"/>
                                     <ComboBox x:Name="LiveSpeciesFilter"
-                                              Margin="0,0,0,12"
+                                              Margin="0,0,0,14"
                                               SelectionChanged="LiveFilters_Changed"/>
 
                                     <TextBlock Text="TROPHY" Style="{StaticResource SectionLabel}"/>
                                     <ComboBox x:Name="LiveTrophyFilter"
-                                              Margin="0,0,0,12"
+                                              Margin="0,0,0,14"
                                               SelectionChanged="LiveFilters_Changed"/>
 
                                     <TextBlock Text="DIFFICULTY" Style="{StaticResource SectionLabel}"/>
                                     <ComboBox x:Name="LiveDifficultyFilter"
-                                              Margin="0,0,0,12"
+                                              Margin="0,0,0,14"
                                               SelectionChanged="LiveFilters_Changed"/>
 
                                     <TextBlock Text="FUR TYPE" Style="{StaticResource SectionLabel}"/>
                                     <TextBox x:Name="LiveFurFilter"
-                                             Margin="0,0,0,12"
+                                             Margin="0,0,0,14"
                                              ToolTip="Filter by fur name"
                                              TextChanged="LiveFilters_Changed"/>
 
@@ -336,7 +336,7 @@
 
                                     <Border BorderBrush="{StaticResource BorderBrush}"
                                             BorderThickness="0,1,0,0"
-                                            Margin="0,0,0,13"/>
+                                            Margin="0,0,0,14"/>
 
                                     <CheckBox x:Name="LiveRareOnly"
                                               Content="Rare fur only"
@@ -412,7 +412,7 @@
                                         CornerRadius="6,0,0,0"/>
 
                                 <Grid Grid.Column="1"
-                                      Margin="16,15,15,14">
+                                      Margin="18,17,17,16">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
@@ -469,7 +469,7 @@
                                     <StackPanel x:Name="SelectedBadgesPanel"
                                                 Grid.Row="1"
                                                 Orientation="Horizontal"
-                                                Margin="0,13,0,12"
+                                                Margin="0,15,0,14"
                                                 Visibility="Collapsed">
                                         <Border Background="#1B1E18"
                                                 BorderBrush="#41483A"
@@ -568,7 +568,7 @@
                                     <StackPanel x:Name="SelectedFooterPanel"
                                                 Grid.Row="3"
                                                 Visibility="Collapsed"
-                                                Margin="0,12,0,0">
+                                                Margin="0,14,0,0">
                                         <Border Background="#241A0E"
                                                 BorderBrush="#4A351C"
                                                 BorderThickness="1"
@@ -613,7 +613,7 @@
                                 </Grid.RowDefinitions>
 
                                 <Grid Grid.Row="0"
-                                      Margin="14,0">
+                                      Margin="16,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -654,7 +654,7 @@
                                               SelectionChanged="LiveAnimalsGrid_SelectionChanged"
                                               MouseDoubleClick="LiveAnimalsGrid_MouseDoubleClick"
                                               HeadersVisibility="None"
-                                              RowHeight="50"
+                                              RowHeight="54"
                                               GridLinesVisibility="Horizontal"
                                               HorizontalGridLinesBrush="#20251D"
                                               HorizontalScrollBarVisibility="Disabled"
@@ -663,7 +663,7 @@
                                             <DataGridTemplateColumn Width="*">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
-                                                        <Grid Margin="4,2,10,2">
+                                                        <Grid Margin="5,3,12,3">
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="4"/>
                                                                 <ColumnDefinition Width="*"/>
@@ -677,7 +677,7 @@
                                                                     CornerRadius="2"/>
 
                                                             <StackPanel Grid.Column="1"
-                                                                        Margin="10,0,8,0"
+                                                                        Margin="11,0,10,0"
                                                                         VerticalAlignment="Center">
                                                                 <TextBlock Text="{Binding DisplaySpecies}"
                                                                            FontFamily="Bahnschrift SemiCondensed, Segoe UI"
@@ -727,7 +727,7 @@
                     <!-- Following state -->
                     <Border HorizontalAlignment="Center"
                             VerticalAlignment="Top"
-                            Margin="0,52,0,0"
+                            Margin="0,58,0,0"
                             Padding="9,6"
                             Background="#E80D100C"
                             BorderBrush="#74413B2B"
@@ -761,7 +761,7 @@
                     <!-- Map command dock -->
                     <Border HorizontalAlignment="Center"
                             VerticalAlignment="Bottom"
-                            Margin="0,0,0,18"
+                            Margin="0,0,0,20"
                             Padding="5"
                             Background="#E80D100C"
                             BorderBrush="#7A3A4033"
@@ -843,9 +843,9 @@
                     </StackPanel>
                 </TabItem.Header>
 
-                <Grid Margin="18,0,18,18">
+                <Grid Margin="22,0,22,22">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="70"/>
+                        <RowDefinition Height="82"/>
                         <RowDefinition Height="76"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
@@ -864,7 +864,7 @@
                         <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"
                                     VerticalAlignment="Center">
-                            <StackPanel Margin="0,0,22,0">
+                            <StackPanel Margin="0,0,24,0">
                                 <TextBlock Text="MATCHES" Style="{StaticResource SectionLabel}"/>
                                 <TextBlock x:Name="PopulationMatchText" Text="0 / 0" FontWeight="SemiBold"/>
                             </StackPanel>
@@ -886,7 +886,7 @@
                     <Border Grid.Row="1"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="0,1,0,1">
-                        <WrapPanel VerticalAlignment="Center" Margin="0,11">
+                        <WrapPanel VerticalAlignment="Center" Margin="0,13">
                             <ComboBox x:Name="PopulationSpeciesFilter"
                                       Width="170"
                                       Margin="0,0,8,0"
@@ -932,7 +932,7 @@
                             Background="{StaticResource PanelBackground}"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1"
-                            Margin="0,12,0,0">
+                            Margin="0,14,0,0">
                         <DataGrid x:Name="PopulationGrid"
                                   AlternationCount="2"
                                   CanUserSortColumns="True"
@@ -965,7 +965,7 @@
                 </TabItem.Header>
 
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <Grid Margin="18,0,18,22">
+                    <Grid Margin="22,0,22,24">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="70"/>
                             <RowDefinition Height="Auto"/>
@@ -981,50 +981,50 @@
                         <Grid Grid.Row="1">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="30"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="INTERFACE" Style="{StaticResource SectionLabel}" Margin="0,0,0,12"/>
+                                <TextBlock Text="INTERFACE" Style="{StaticResource SectionLabel}" Margin="0,0,0,14"/>
 
                                 <CheckBox x:Name="AlwaysOnTopCheck"
                                           Content="Always on top"
-                                          Margin="0,0,0,12"
+                                          Margin="0,0,0,14"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowGroupCheck"
                                           Content="Show herd / group identity"
                                           IsChecked="True"
-                                          Margin="0,0,0,12"
+                                          Margin="0,0,0,14"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowCoordinatesCheck"
                                           Content="Show world coordinates"
                                           IsChecked="True"
-                                          Margin="0,0,0,12"
+                                          Margin="0,0,0,14"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowDeveloperCheck"
                                           Content="Show developer details"
-                                          Margin="0,0,0,12"
+                                          Margin="0,0,0,14"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowOutpostsCheck"
                                           Content="Show outpost calibration references on map"
                                           IsChecked="True"
-                                          Margin="0,0,0,12"
+                                          Margin="0,0,0,14"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
 
-                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,8,0,18"/>
+                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,12,0,20"/>
 
-                                <TextBlock Text="MAP SETUP" Style="{StaticResource SectionLabel}" Margin="0,0,0,12"/>
+                                <TextBlock Text="MAP SETUP" Style="{StaticResource SectionLabel}" Margin="0,0,0,14"/>
                                 <TextBlock x:Name="SettingsMapStatusText"
                                            Text="Map setup status"
                                            Foreground="{StaticResource TextSecondary}"
                                            TextWrapping="Wrap"
-                                           Margin="0,0,0,12"/>
+                                           Margin="0,0,0,14"/>
                                 <StackPanel Orientation="Horizontal">
                                     <Button x:Name="BuildMapsFromGameButton"
                                             Style="{StaticResource PrimaryButton}"
@@ -1047,7 +1047,7 @@
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
-                                <TextBlock Text="RUNTIME" Style="{StaticResource SectionLabel}" Margin="0,0,0,12"/>
+                                <TextBlock Text="RUNTIME" Style="{StaticResource SectionLabel}" Margin="0,0,0,14"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="120"/>
@@ -1069,7 +1069,7 @@
                                     <TextBlock x:Name="SettingsProfileText" Grid.Row="3" Grid.Column="1" Text="—" VerticalAlignment="Center"/>
                                 </Grid>
 
-                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,18,0,18"/>
+                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,20,0,20"/>
 
                                 <Expander Header="Diagnostics">
                                     <StackPanel Margin="0,10,0,0">
@@ -1079,14 +1079,14 @@
                                                    FontFamily="Cascadia Mono, Consolas"
                                                    FontSize="10"
                                                    TextWrapping="Wrap"
-                                                   Margin="0,0,0,12"/>
+                                                   Margin="0,0,0,14"/>
                                         <TextBlock Text="Executable SHA-256" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
                                         <TextBlock x:Name="SettingsHashText"
                                                    Text="—"
                                                    FontFamily="Cascadia Mono, Consolas"
                                                    FontSize="10"
                                                    TextWrapping="Wrap"
-                                                   Margin="0,0,0,12"/>
+                                                   Margin="0,0,0,14"/>
                                         <TextBlock Text="READ-ONLY · VM_READ / QUERY"
                                                    Foreground="{StaticResource GoodBrush}"
                                                    FontWeight="SemiBold"/>
@@ -1106,7 +1106,7 @@
                         <TextBlock Text="ABOUT"/>
                     </StackPanel>
                 </TabItem.Header>
-                <Grid Margin="24">
+                <Grid Margin="28">
                     <StackPanel Width="520" HorizontalAlignment="Left">
                         <TextBlock Text="WildTrace" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="A read-only COTW live radar and population intelligence tool."
