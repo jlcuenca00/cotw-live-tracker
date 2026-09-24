@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -503,7 +502,8 @@ public sealed class RadarControl : FrameworkElement
                 13d);
         }
 
-        foreach (var animal in Animals)
+        foreach (var animal in Animals
+                     .OrderBy(MarkerPriority))
         {
             var normalized =
                 calibration.WorldToNormalized(
@@ -690,7 +690,8 @@ public sealed class RadarControl : FrameworkElement
             5d,
             5d);
 
-        foreach (var animal in Animals)
+        foreach (var animal in Animals
+                     .OrderBy(MarkerPriority))
         {
             var point =
                 new Point(
@@ -729,7 +730,7 @@ public sealed class RadarControl : FrameworkElement
             ? Math.Clamp(0.90d + (Math.Log(Math.Max(1d, _mapZoom), 2d) * 0.08d), 0.9d, 1.28d)
             : 1d;
         var markerRadius =
-            (selected || followed ? 9d : 7d) * zoomScale;
+            (selected || followed ? 10.5d : 8.25d) * zoomScale;
 
         if (animal.IsGreatOne)
         {
@@ -775,18 +776,24 @@ public sealed class RadarControl : FrameworkElement
             markerRadius + 2d);
 
         drawingContext.DrawEllipse(
-            new SolidColorBrush(Color.FromArgb(225, 16, 18, 15)),
-            new Pen(brush, 1.8d),
+            new SolidColorBrush(Color.FromArgb(238, 11, 13, 10)),
+            new Pen(new SolidColorBrush(Color.FromArgb(220, 0, 0, 0)), 3.6d),
+            point,
+            markerRadius + 0.8d,
+            markerRadius + 0.8d);
+
+        drawingContext.DrawEllipse(
+            new SolidColorBrush(Color.FromArgb(236, 17, 20, 15)),
+            new Pen(brush, 2.1d),
             point,
             markerRadius,
             markerRadius);
 
-        DrawFontAwesomeGlyph(
+        DrawPawMarker(
             drawingContext,
-            "\uf1b0",
             point,
             brush,
-            Math.Max(8d, markerRadius + 2d));
+            markerRadius);
 
         if (selected ||
             followed ||
@@ -810,33 +817,79 @@ public sealed class RadarControl : FrameworkElement
         _markers.Add((point, animal));
     }
 
-    private void DrawFontAwesomeGlyph(
+    private static void DrawPawMarker(
         DrawingContext drawingContext,
-        string glyph,
         Point center,
         Brush brush,
-        double size)
+        double radius)
     {
-        var typeface = new Typeface(
-            new FontFamily("/FontAwesome.Sharp;component/fonts/#Font Awesome 6 Free Solid"),
-            FontStyles.Normal,
-            FontWeights.Normal,
-            FontStretches.Normal);
+        var toeRadius = Math.Max(1.15d, radius * 0.16d);
+        var toeY = center.Y - (radius * 0.30d);
+        var toeOffsets = new[]
+        {
+            new Point(-radius * 0.38d, toeY + (radius * 0.08d)),
+            new Point(-radius * 0.13d, toeY - (radius * 0.08d)),
+            new Point(radius * 0.13d, toeY - (radius * 0.08d)),
+            new Point(radius * 0.38d, toeY + (radius * 0.08d))
+        };
 
-        var text = new FormattedText(
-            glyph,
-            CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight,
-            typeface,
-            size,
+        foreach (var toe in toeOffsets)
+        {
+            drawingContext.DrawEllipse(
+                brush,
+                null,
+                new Point(center.X + toe.X, toe.Y),
+                toeRadius,
+                toeRadius);
+        }
+
+        drawingContext.DrawEllipse(
             brush,
-            VisualTreeHelper.GetDpi(this).PixelsPerDip);
-
-        drawingContext.DrawText(
-            text,
+            null,
             new Point(
-                center.X - (text.Width / 2d),
-                center.Y - (text.Height / 2d)));
+                center.X,
+                center.Y + (radius * 0.18d)),
+            radius * 0.34d,
+            radius * 0.29d);
+    }
+
+    private static int MarkerPriority(LiveAnimalView animal)
+    {
+        if (animal.IsGreatOne)
+        {
+            return 50;
+        }
+
+        if (animal.IsRare)
+        {
+            return 40;
+        }
+
+        if (string.Equals(
+                animal.Trophy,
+                "Diamond",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return 30;
+        }
+
+        if (string.Equals(
+                animal.Trophy,
+                "Gold",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return 20;
+        }
+
+        if (string.Equals(
+                animal.Trophy,
+                "Silver",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return 10;
+        }
+
+        return 0;
     }
 
     protected override void OnMouseWheel(
@@ -955,7 +1008,7 @@ public sealed class RadarControl : FrameworkElement
                          click).Length
                 })
                 .Where(item =>
-                    item.Distance <= 14d)
+                    item.Distance <= 18d)
                 .OrderBy(item =>
                     item.Distance)
                 .FirstOrDefault();
