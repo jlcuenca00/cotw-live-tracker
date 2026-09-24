@@ -494,12 +494,37 @@ public sealed class RadarControl : FrameworkElement
                 player,
                 12d,
                 12d);
-            DrawFontAwesomeGlyph(
-                drawingContext,
-                "\uf05b",
+
+            drawingContext.DrawEllipse(
+                new SolidColorBrush(Color.FromArgb(235, 14, 17, 12)),
+                new Pen(PlayerBrush, 2d),
                 player,
+                7d,
+                7d);
+
+            drawingContext.DrawLine(
+                new Pen(PlayerBrush, 1.8d),
+                new Point(player.X - 10d, player.Y),
+                new Point(player.X - 4d, player.Y));
+            drawingContext.DrawLine(
+                new Pen(PlayerBrush, 1.8d),
+                new Point(player.X + 4d, player.Y),
+                new Point(player.X + 10d, player.Y));
+            drawingContext.DrawLine(
+                new Pen(PlayerBrush, 1.8d),
+                new Point(player.X, player.Y - 10d),
+                new Point(player.X, player.Y - 4d));
+            drawingContext.DrawLine(
+                new Pen(PlayerBrush, 1.8d),
+                new Point(player.X, player.Y + 4d),
+                new Point(player.X, player.Y + 10d));
+
+            drawingContext.DrawEllipse(
                 PlayerBrush,
-                13d);
+                null,
+                player,
+                2.2d,
+                2.2d);
         }
 
         foreach (var animal in Animals
