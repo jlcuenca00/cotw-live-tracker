@@ -109,8 +109,10 @@
                             Height="34"
                             Style="{StaticResource PrimaryButton}"
                             Click="AttachButton_Click">
-                        <StackPanel Orientation="Horizontal">
-                            <fa:IconBlock Icon="Plug" FontSize="11" Margin="{StaticResource InlineGap}"/>
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                            <fa:IconBlock Icon="Plug" FontSize="11" Margin="{StaticResource InlineGap}" VerticalAlignment="Center"/>
                             <TextBlock Text="Attach" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
@@ -141,9 +143,11 @@
             <!-- LIVE MAP -->
             <TabItem>
                 <TabItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <fa:IconBlock Icon="Map" FontSize="13" Width="20" Margin="{StaticResource InlineGap}"/>
-                        <TextBlock Text="LIVE MAP"/>
+                    <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                        <fa:IconBlock Icon="Map" FontSize="13" Width="20" Margin="{StaticResource InlineGap}" VerticalAlignment="Center"/>
+                        <TextBlock Text="LIVE MAP" VerticalAlignment="Center"/>
                     </StackPanel>
                 </TabItem.Header>
 
@@ -239,12 +243,14 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
                                         <fa:IconBlock Icon="Sliders"
                                                       Foreground="{StaticResource AccentBrush}"
                                                       FontSize="11"
                                                       Margin="{StaticResource InlineGap}"
-                                                      VerticalAlignment="Center"/>
+                                                      VerticalAlignment="Center" VerticalAlignment="Center"/>
                                         <TextBlock Text="FILTER ANIMALS"
                                                    FontFamily="Bahnschrift SemiCondensed, Segoe UI"
                                                    FontWeight="SemiBold"
@@ -357,10 +363,12 @@
                                     HorizontalContentAlignment="Left"
                                     Padding="0,8,0,0"
                                     Click="ClearLiveFilters_Click">
-                                <StackPanel Orientation="Horizontal">
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
                                     <fa:IconBlock Icon="Rotate"
                                                   FontSize="9"
-                                                  Margin="{StaticResource InlineGap}"/>
+                                                  Margin="{StaticResource InlineGap}" VerticalAlignment="Center"/>
                                     <TextBlock Text="Reset filters"
                                                FontSize="10"/>
                                 </StackPanel>
@@ -861,7 +869,7 @@
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
                         <fa:IconBlock Icon="Database" FontSize="13" Width="20" Margin="{StaticResource InlineGap}"/>
-                        <TextBlock Text="POPULATION"/>
+                        <TextBlock Text="POPULATION" VerticalAlignment="Center"/>
                     </StackPanel>
                 </TabItem.Header>
 
@@ -982,7 +990,7 @@
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
                         <fa:IconBlock Icon="Sliders" FontSize="13" Width="20" Margin="{StaticResource InlineGap}"/>
-                        <TextBlock Text="CONTROL CENTER"/>
+                        <TextBlock Text="CONTROL CENTER" VerticalAlignment="Center"/>
                     </StackPanel>
                 </TabItem.Header>
 
@@ -1125,7 +1133,7 @@
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
                         <fa:IconBlock Icon="CircleInfo" FontSize="13" Width="20" Margin="{StaticResource InlineGap}"/>
-                        <TextBlock Text="ABOUT"/>
+                        <TextBlock Text="ABOUT" VerticalAlignment="Center"/>
                     </StackPanel>
                 </TabItem.Header>
                 <Grid Margin="24">
