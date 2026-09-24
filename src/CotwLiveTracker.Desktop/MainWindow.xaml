@@ -33,7 +33,7 @@
                             BorderBrush="#58401F"
                             BorderThickness="1"
                             CornerRadius="4"
-                            Margin="0,0,12,0">
+                            Margin="0,0,14,0">
                         <fa:IconBlock Icon="Crosshairs"
                                       Foreground="{StaticResource AccentBright}"
                                       FontSize="15"
@@ -250,7 +250,7 @@
                                         <fa:IconBlock Icon="Sliders"
                                                       Foreground="{StaticResource AccentBrush}"
                                                       FontSize="11"
-                                                      Margin="0,0,8,0"
+                                                      Margin="0,0,10,0"
                                                       VerticalAlignment="Center"/>
                                         <TextBlock Text="FILTER ANIMALS"
                                                    FontFamily="Bahnschrift SemiCondensed, Segoe UI"
@@ -624,7 +624,7 @@
                                         <fa:IconBlock Icon="Paw"
                                                       Foreground="{StaticResource AccentBrush}"
                                                       FontSize="10"
-                                                      Margin="0,0,8,0"/>
+                                                      Margin="0,0,10,0"/>
                                         <TextBlock Text="LOADED ANIMALS"
                                                    FontFamily="Bahnschrift SemiCondensed, Segoe UI"
                                                    FontWeight="SemiBold"
@@ -846,7 +846,7 @@
                 <Grid Margin="22,0,22,22">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="82"/>
-                        <RowDefinition Height="76"/>
+                        <RowDefinition Height="80"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -868,11 +868,11 @@
                                 <TextBlock Text="MATCHES" Style="{StaticResource SectionLabel}"/>
                                 <TextBlock x:Name="PopulationMatchText" Text="0 / 0" FontWeight="SemiBold"/>
                             </StackPanel>
-                            <StackPanel Margin="0,0,22,0">
+                            <StackPanel Margin="0,0,24,0">
                                 <TextBlock Text="DIAMOND" Style="{StaticResource SectionLabel}"/>
                                 <TextBlock x:Name="PopulationDiamondText" Text="0" Foreground="{StaticResource DiamondBrush}" FontWeight="SemiBold"/>
                             </StackPanel>
-                            <StackPanel Margin="0,0,22,0">
+                            <StackPanel Margin="0,0,24,0">
                                 <TextBlock Text="RARE" Style="{StaticResource SectionLabel}"/>
                                 <TextBlock x:Name="PopulationRareText" Text="0" Foreground="{StaticResource RareBrush}" FontWeight="SemiBold"/>
                             </StackPanel>
@@ -889,33 +889,33 @@
                         <WrapPanel VerticalAlignment="Center" Margin="0,13">
                             <ComboBox x:Name="PopulationSpeciesFilter"
                                       Width="170"
-                                      Margin="0,0,8,0"
+                                      Margin="0,0,10,0"
                                       SelectionChanged="PopulationFilters_Changed"/>
                             <ComboBox x:Name="PopulationTrophyFilter"
                                       Width="125"
-                                      Margin="0,0,8,0"
+                                      Margin="0,0,10,0"
                                       SelectionChanged="PopulationFilters_Changed"/>
                             <ComboBox x:Name="PopulationDifficultyFilter"
                                       Width="110"
-                                      Margin="0,0,8,0"
+                                      Margin="0,0,10,0"
                                       SelectionChanged="PopulationFilters_Changed"/>
                             <TextBox x:Name="PopulationFurFilter"
                                      Width="130"
-                                     Margin="0,0,8,0"
+                                     Margin="0,0,10,0"
                                      ToolTip="Fur name"
                                      TextChanged="PopulationFilters_Changed"/>
                             <ComboBox x:Name="PopulationSexFilter"
                                       Width="100"
-                                      Margin="0,0,12,0"
+                                      Margin="0,0,14,0"
                                       SelectionChanged="PopulationFilters_Changed"/>
                             <CheckBox x:Name="PopulationRareOnly"
                                       Content="Rare"
-                                      Margin="0,0,12,0"
+                                      Margin="0,0,14,0"
                                       Checked="PopulationFilters_Changed"
                                       Unchecked="PopulationFilters_Changed"/>
                             <CheckBox x:Name="PopulationGreatOneOnly"
                                       Content="Great One"
-                                      Margin="0,0,12,0"
+                                      Margin="0,0,14,0"
                                       Checked="PopulationFilters_Changed"
                                       Unchecked="PopulationFilters_Changed"/>
                             <Button Style="{StaticResource QuietButton}"
@@ -932,7 +932,7 @@
                             Background="{StaticResource PanelBackground}"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1"
-                            Margin="0,14,0,0">
+                            Margin="0,16,0,0">
                         <DataGrid x:Name="PopulationGrid"
                                   AlternationCount="2"
                                   CanUserSortColumns="True"
@@ -967,7 +967,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <Grid Margin="22,0,22,24">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="70"/>
+                            <RowDefinition Height="82"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
@@ -1030,7 +1030,7 @@
                                             Style="{StaticResource PrimaryButton}"
                                             IsEnabled="False"
                                             Click="BuildMapsFromGameButton_Click"
-                                            Margin="0,0,8,0">
+                                            Margin="0,0,10,0">
                                         <StackPanel Orientation="Horizontal">
                                             <fa:IconBlock Icon="FolderOpen" FontSize="11" Margin="0,0,7,0"/>
                                             <TextBlock Text="Build maps from game"/>
@@ -1054,10 +1054,10 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="32"/>
-                                        <RowDefinition Height="32"/>
-                                        <RowDefinition Height="32"/>
-                                        <RowDefinition Height="32"/>
+                                        <RowDefinition Height="34"/>
+                                        <RowDefinition Height="34"/>
+                                        <RowDefinition Height="34"/>
+                                        <RowDefinition Height="34"/>
                                     </Grid.RowDefinitions>
                                     <TextBlock Text="Process ID" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="SettingsPidText" Grid.Column="1" Text="—" VerticalAlignment="Center"/>
