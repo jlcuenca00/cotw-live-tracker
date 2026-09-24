@@ -17,7 +17,8 @@ internal sealed record DifficultyMemoryCandidate(
 internal sealed record DifficultyMemoryProbeResult(
     nint AnimalAddress,
     IReadOnlyList<DifficultyMemoryCandidate> Candidates,
-    int PointerReads)
+    int PointerReads,
+    int? PreferredCandidateLevel)
 {
     public string FormatReport(
         string species,
@@ -32,7 +33,12 @@ internal sealed record DifficultyMemoryProbeResult(
             $"Entity: 0x{AnimalAddress.ToInt64():X}",
             $"Weight: {weight:F4}",
             $"Score: {score:F4}",
-            $"Current estimate: {estimatedDifficulty}",
+            $"Current weight estimate: {estimatedDifficulty}",
+            PreferredCandidateLevel is int preferred
+                ? $"Experimental native candidate: {FormatDifficulty(preferred)}"
+                : "Experimental native candidate: unavailable",
+            "Candidate path: *(entity+0x018)+0x008 int32",
+            "Status: strong candidate only; validate on a different in-game level before treating it as authoritative.",
             $"Immediate pointer windows read: {PointerReads}",
             "",
             "Candidate fields whose current value is an integer 1-10:",
@@ -55,6 +61,22 @@ internal sealed record DifficultyMemoryProbeResult(
 
         return string.Join(Environment.NewLine, lines);
     }
+
+    private static string FormatDifficulty(int level) =>
+        level switch
+        {
+            1 => "1-Trivial",
+            2 => "2-Minor",
+            3 => "3-Very Easy",
+            4 => "4-Easy",
+            5 => "5-Medium",
+            6 => "6-Hard",
+            7 => "7-Very Hard",
+            8 => "8-Mythical",
+            9 => "9-Legendary",
+            10 => "10-Fabled",
+            _ => level.ToString()
+        };
 }
 
 internal static class AnimalDifficultyMemoryProbe
@@ -63,6 +85,8 @@ internal static class AnimalDifficultyMemoryProbe
     private const int ChildScanLength = 0x80;
     private const int MaxPointerReads = 32;
     private const int MaxCandidates = 96;
+    private const int PreferredPointerOffset = 0x18;
+    private const int PreferredLevelOffset = 0x08;
 
     public static DifficultyMemoryProbeResult Probe(
         IMemoryReader memory,
@@ -72,6 +96,10 @@ internal static class AnimalDifficultyMemoryProbe
 
         var candidates = new List<DifficultyMemoryCandidate>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        var preferredCandidateLevel =
+            TryReadPreferredCandidate(
+                memory,
+                animalAddress);
 
         var entityBytes = memory.ReadBytes(
             animalAddress,
@@ -124,7 +152,11 @@ internal static class AnimalDifficultyMemoryProbe
 
         var ordered = candidates
             .OrderBy(candidate =>
-                candidate.Path == "entity" ? 0 : 1)
+                IsPreferredCandidate(candidate)
+                    ? 0
+                    : candidate.Path == "entity"
+                        ? 1
+                        : 2)
             .ThenBy(candidate =>
                 candidate.Path == "entity"
                     ? Math.Abs(candidate.Offset - 0x1A0)
@@ -137,7 +169,43 @@ internal static class AnimalDifficultyMemoryProbe
         return new DifficultyMemoryProbeResult(
             animalAddress,
             ordered,
-            pointerReads);
+            pointerReads,
+            preferredCandidateLevel);
+    }
+
+    public static int? TryReadPreferredCandidate(
+        IMemoryReader memory,
+        nint animalAddress)
+    {
+        ArgumentNullException.ThrowIfNull(memory);
+
+        try
+        {
+            var pointerBytes = memory.ReadBytes(
+                animalAddress + PreferredPointerOffset,
+                sizeof(long));
+            var child = (nint)BinaryPrimitives.ReadInt64LittleEndian(
+                pointerBytes);
+
+            if (!IsPlausiblePointer(child))
+            {
+                return null;
+            }
+
+            var levelBytes = memory.ReadBytes(
+                child + PreferredLevelOffset,
+                sizeof(int));
+            var level = BinaryPrimitives.ReadInt32LittleEndian(
+                levelBytes);
+
+            return level is >= 1 and <= 10
+                ? level
+                : null;
+        }
+        catch (Exception ex) when (IsExpectedReadFailure(ex))
+        {
+            return null;
+        }
     }
 
     private static void ScanAligned(
@@ -231,6 +299,14 @@ internal static class AnimalDifficultyMemoryProbe
                 encoding,
                 value));
     }
+
+    private static bool IsPreferredCandidate(
+        DifficultyMemoryCandidate candidate) =>
+        candidate.Path.StartsWith(
+            "entity+0x018->",
+            StringComparison.Ordinal) &&
+        candidate.Offset == PreferredLevelOffset &&
+        candidate.Encoding == "int32";
 
     private static int EncodingRank(string encoding) =>
         encoding switch
