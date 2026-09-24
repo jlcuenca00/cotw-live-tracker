@@ -361,6 +361,10 @@ public sealed class RadarControl : FrameworkElement
             null,
             mapRect);
 
+        DrawMapEdgeFade(
+            drawingContext,
+            mapRect);
+
         var references =
             ReserveMapReferenceCatalog.Get(
                 calibration.ReserveIndex);
@@ -484,6 +488,76 @@ public sealed class RadarControl : FrameworkElement
                 12d),
             TextBrush,
             12d);
+    }
+
+    private static void DrawMapEdgeFade(
+        DrawingContext drawingContext,
+        Rect mapRect)
+    {
+        var fadeSize = Math.Clamp(
+            Math.Min(mapRect.Width, mapRect.Height) * 0.075d,
+            34d,
+            82d);
+
+        var edgeColor = Color.FromArgb(238, 8, 10, 7);
+        var transparent = Color.FromArgb(0, 8, 10, 7);
+
+        var leftBrush = new LinearGradientBrush(
+            edgeColor,
+            transparent,
+            new Point(0d, 0.5d),
+            new Point(1d, 0.5d));
+        var rightBrush = new LinearGradientBrush(
+            transparent,
+            edgeColor,
+            new Point(0d, 0.5d),
+            new Point(1d, 0.5d));
+        var topBrush = new LinearGradientBrush(
+            edgeColor,
+            transparent,
+            new Point(0.5d, 0d),
+            new Point(0.5d, 1d));
+        var bottomBrush = new LinearGradientBrush(
+            transparent,
+            edgeColor,
+            new Point(0.5d, 0d),
+            new Point(0.5d, 1d));
+
+        drawingContext.DrawRectangle(
+            leftBrush,
+            null,
+            new Rect(
+                mapRect.Left,
+                mapRect.Top,
+                Math.Min(fadeSize, mapRect.Width),
+                mapRect.Height));
+
+        drawingContext.DrawRectangle(
+            rightBrush,
+            null,
+            new Rect(
+                Math.Max(mapRect.Left, mapRect.Right - fadeSize),
+                mapRect.Top,
+                Math.Min(fadeSize, mapRect.Width),
+                mapRect.Height));
+
+        drawingContext.DrawRectangle(
+            topBrush,
+            null,
+            new Rect(
+                mapRect.Left,
+                mapRect.Top,
+                mapRect.Width,
+                Math.Min(fadeSize, mapRect.Height)));
+
+        drawingContext.DrawRectangle(
+            bottomBrush,
+            null,
+            new Rect(
+                mapRect.Left,
+                Math.Max(mapRect.Top, mapRect.Bottom - fadeSize),
+                mapRect.Width,
+                Math.Min(fadeSize, mapRect.Height)));
     }
 
     private void RenderRelativeRadar(
