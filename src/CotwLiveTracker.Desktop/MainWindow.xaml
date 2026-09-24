@@ -34,9 +34,9 @@
                             BorderThickness="1"
                             CornerRadius="4"
                             Margin="0,0,10,0">
-                        <fa:IconBlock Icon="Paw"
+                        <fa:IconBlock Icon="Crosshairs"
                                       Foreground="{StaticResource AccentBright}"
-                                      FontSize="16"
+                                      FontSize="15"
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center"/>
                     </Border>
@@ -134,344 +134,333 @@
                     </StackPanel>
                 </TabItem.Header>
 
-                <Grid Background="{StaticResource AppBackground}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="56"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <!--
+                    Live Map is intentionally map-first. Filters and telemetry float over
+                    the reserve instead of splitting the page into dashboard columns.
+                -->
+                <Grid Background="#080A07"
+                      ClipToBounds="True">
 
-                    <Grid Grid.Row="0" Margin="18,0,18,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Live Map" Style="{StaticResource PageTitle}"/>
-                            <TextBlock Text="Loaded animals, live positions and target tracking"
+                    <controls:RadarControl x:Name="Radar"/>
+
+                    <!-- Soft viewport vignette. The radar itself also fades the actual
+                         reserve-image edges, so this remains responsive to any map crop. -->
+                    <Border IsHitTestVisible="False"
+                            Background="#09000000"/>
+
+                    <!-- Small map state tag -->
+                    <Border HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Margin="0,16,0,0"
+                            Padding="10,6"
+                            Background="#DC0D100C"
+                            BorderBrush="#76353B30"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="5"
+                                     Height="5"
+                                     Fill="{StaticResource AccentBrush}"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,7,0"/>
+                            <TextBlock x:Name="MapModeStatusText"
+                                       Text="Reserve map"
                                        Foreground="{StaticResource TextSecondary}"
-                                       FontSize="11"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1"
-                                    Orientation="Horizontal"
-                                    VerticalAlignment="Center">
-                            <TextBlock Text="ALL LOADED"
-                                       Style="{StaticResource SectionLabel}"
-                                       Margin="0,0,9,0"
-                                       VerticalAlignment="Center"/>
-                            <TextBlock x:Name="LiveFilterSummaryText"
-                                       Text="0 shown / 0 loaded"
-                                       Foreground="{StaticResource TextPrimary}"
+                                       FontFamily="Bahnschrift SemiCondensed, Segoe UI"
                                        FontWeight="SemiBold"
-                                       FontSize="12"
-                                       VerticalAlignment="Center"/>
+                                       FontSize="10"/>
                         </StackPanel>
-                    </Grid>
+                    </Border>
 
-                    <Grid Grid.Row="1">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="190"/>
-                            <ColumnDefinition Width="*" MinWidth="380"/>
-                            <ColumnDefinition Width="340"/>
-                        </Grid.ColumnDefinitions>
+                    <!-- FILTER INSTRUMENT -->
+                    <Border Width="226"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Stretch"
+                            Margin="18"
+                            Padding="14"
+                            Background="#ED0D100C"
+                            BorderBrush="#8A343A2F"
+                            BorderThickness="1"
+                            CornerRadius="6">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="20"
+                                              ShadowDepth="0"
+                                              Opacity="0.25"
+                                              Color="#000000"/>
+                        </Border.Effect>
 
-                        <!-- FILTER RAIL -->
-                        <Border Grid.Column="0"
-                                Background="{StaticResource SidebarBackground}"
-                                BorderBrush="{StaticResource BorderBrush}"
-                                BorderThickness="0,1,1,0">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <StackPanel Margin="16,15">
-                                    <Grid Margin="0,0,0,18">
-                                        <fa:IconBlock Icon="MagnifyingGlass"
-                                                      Foreground="{StaticResource TextFaint}"
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <fa:IconBlock Icon="Sliders"
+                                                      Foreground="{StaticResource AccentBrush}"
                                                       FontSize="11"
-                                                      Margin="10,0,0,0"
-                                                      HorizontalAlignment="Left"
-                                                      VerticalAlignment="Center"
-                                                      Panel.ZIndex="2"/>
-                                        <TextBox x:Name="LiveSearchFilter"
-                                                 Padding="31,6,8,6"
-                                                 ToolTip="Search species, fur, trophy, sex or level"
-                                                 TextChanged="LiveFilters_Changed"/>
-                                        <TextBlock Text="Search animals"
-                                                   Foreground="{StaticResource TextFaint}"
-                                                   FontSize="10"
-                                                   Margin="31,0,0,0"
-                                                   VerticalAlignment="Center"
-                                                   IsHitTestVisible="False">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Text, ElementName=LiveSearchFilter}" Value="">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </Grid>
+                                                      Margin="0,0,8,0"
+                                                      VerticalAlignment="Center"/>
+                                        <TextBlock Text="FILTER ANIMALS"
+                                                   FontFamily="Bahnschrift SemiCondensed, Segoe UI"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="11"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Display only · scanner stays live"
+                                               Foreground="{StaticResource TextFaint}"
+                                               FontSize="9"
+                                               Margin="19,2,0,0"/>
+                                </StackPanel>
+                                <TextBlock x:Name="LiveFilterSummaryText"
+                                           Grid.Column="1"
+                                           Text="0 / 0"
+                                           Foreground="{StaticResource TextSecondary}"
+                                           FontFamily="Bahnschrift SemiCondensed, Segoe UI"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Top"/>
+                            </Grid>
 
+                            <Grid Grid.Row="1"
+                                  Margin="0,0,0,15">
+                                <fa:IconBlock Icon="MagnifyingGlass"
+                                              Foreground="{StaticResource TextFaint}"
+                                              FontSize="10"
+                                              Margin="10,0,0,0"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"
+                                              Panel.ZIndex="2"/>
+                                <TextBox x:Name="LiveSearchFilter"
+                                         Padding="30,6,8,6"
+                                         ToolTip="Search species, fur, trophy, sex or level"
+                                         TextChanged="LiveFilters_Changed"/>
+                                <TextBlock Text="Search loaded animals"
+                                           Foreground="{StaticResource TextFaint}"
+                                           FontSize="10"
+                                           Margin="30,0,0,0"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=LiveSearchFilter}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+
+                            <ScrollViewer Grid.Row="2"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel>
                                     <TextBlock Text="SPECIES" Style="{StaticResource SectionLabel}"/>
                                     <ComboBox x:Name="LiveSpeciesFilter"
-                                              Margin="0,0,0,13"
+                                              Margin="0,0,0,12"
                                               SelectionChanged="LiveFilters_Changed"/>
 
                                     <TextBlock Text="TROPHY" Style="{StaticResource SectionLabel}"/>
                                     <ComboBox x:Name="LiveTrophyFilter"
-                                              Margin="0,0,0,13"
+                                              Margin="0,0,0,12"
                                               SelectionChanged="LiveFilters_Changed"/>
 
                                     <TextBlock Text="DIFFICULTY" Style="{StaticResource SectionLabel}"/>
                                     <ComboBox x:Name="LiveDifficultyFilter"
-                                              Margin="0,0,0,13"
+                                              Margin="0,0,0,12"
                                               SelectionChanged="LiveFilters_Changed"/>
 
                                     <TextBlock Text="FUR TYPE" Style="{StaticResource SectionLabel}"/>
                                     <TextBox x:Name="LiveFurFilter"
-                                             Margin="0,0,0,13"
+                                             Margin="0,0,0,12"
                                              ToolTip="Filter by fur name"
                                              TextChanged="LiveFilters_Changed"/>
 
                                     <TextBlock Text="SEX" Style="{StaticResource SectionLabel}"/>
                                     <ComboBox x:Name="LiveSexFilter"
-                                              Margin="0,0,0,16"
+                                              Margin="0,0,0,14"
                                               SelectionChanged="LiveFilters_Changed"/>
 
                                     <Border BorderBrush="{StaticResource BorderBrush}"
                                             BorderThickness="0,1,0,0"
-                                            Margin="0,1,0,14"/>
+                                            Margin="0,0,0,13"/>
 
                                     <CheckBox x:Name="LiveRareOnly"
                                               Content="Rare fur only"
-                                              Margin="0,0,0,10"
+                                              Margin="0,0,0,9"
                                               Checked="LiveFilters_Changed"
                                               Unchecked="LiveFilters_Changed"/>
                                     <CheckBox x:Name="LiveGreatOneOnly"
                                               Content="Great One only"
-                                              Margin="0,0,0,16"
+                                              Margin="0,0,0,15"
                                               Checked="LiveFilters_Changed"
                                               Unchecked="LiveFilters_Changed"/>
 
                                     <WrapPanel x:Name="ActiveFilterChipsPanel"
-                                               Margin="0,0,0,5"/>
+                                               Margin="0,0,0,4"/>
                                     <TextBlock x:Name="NoActiveFiltersText"
                                                Text="No active filters"
                                                Foreground="{StaticResource TextFaint}"
-                                               FontSize="10"
-                                               Margin="0,0,0,8"/>
-
-                                    <Button Style="{StaticResource QuietButton}"
-                                            HorizontalContentAlignment="Left"
-                                            Padding="0,6"
-                                            Click="ClearLiveFilters_Click">
-                                        <StackPanel Orientation="Horizontal">
-                                            <fa:IconBlock Icon="Rotate" FontSize="10" Margin="0,0,7,0"/>
-                                            <TextBlock Text="Reset filters" FontSize="11"/>
-                                        </StackPanel>
-                                    </Button>
+                                               FontSize="9"
+                                               Margin="0,0,0,4"/>
                                 </StackPanel>
                             </ScrollViewer>
-                        </Border>
 
-                        <!-- MAP -->
-                        <Grid Grid.Column="1"
-                              Background="#080A07"
-                              ClipToBounds="True">
-                            <controls:RadarControl x:Name="Radar"
-                                                   MinWidth="360"/>
-
-                            <!-- Map identity -->
-                            <Border HorizontalAlignment="Left"
-                                    VerticalAlignment="Top"
-                                    Margin="14"
-                                    Padding="10,8"
-                                    Background="#D90D100C"
-                                    BorderBrush="#70343B2F"
-                                    BorderThickness="1"
-                                    CornerRadius="4">
-                                <StackPanel>
-                                    <TextBlock x:Name="MapModeStatusText"
-                                               Text="Reserve map"
-                                               FontFamily="Bahnschrift SemiCondensed, Segoe UI"
-                                               FontWeight="SemiBold"
-                                               FontSize="12"/>
-                                    <TextBlock Text="LIVE RADAR"
-                                               Foreground="{StaticResource TextFaint}"
-                                               FontSize="9"
-                                               FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Follow status -->
-                            <Border HorizontalAlignment="Center"
-                                    VerticalAlignment="Top"
-                                    Margin="0,14,0,0"
-                                    Padding="10,7"
-                                    Background="#E60D100C"
-                                    BorderBrush="#70413B2B"
-                                    BorderThickness="1"
-                                    CornerRadius="4">
+                            <Button Grid.Row="3"
+                                    Style="{StaticResource QuietButton}"
+                                    HorizontalContentAlignment="Left"
+                                    Padding="0,8,0,0"
+                                    Click="ClearLiveFilters_Click">
                                 <StackPanel Orientation="Horizontal">
-                                    <fa:IconBlock Icon="Crosshairs"
-                                                  Foreground="{StaticResource AccentBrush}"
-                                                  FontSize="11"
+                                    <fa:IconBlock Icon="Rotate"
+                                                  FontSize="9"
                                                   Margin="0,0,7,0"/>
-                                    <TextBlock x:Name="FollowingStatusText"
-                                               Text="Free navigation"
-                                               Foreground="{StaticResource TextSecondary}"
-                                               FontSize="11"
-                                               FontWeight="SemiBold"/>
-                                    <Button x:Name="StopFollowingButton"
-                                            Style="{StaticResource QuietButton}"
-                                            Width="26"
-                                            Height="22"
-                                            Padding="0"
-                                            Margin="8,-4,-5,-4"
-                                            IsEnabled="False"
-                                            Click="StopFollowingButton_Click"
-                                            ToolTip="Stop following">
-                                        <fa:IconBlock Icon="Xmark" FontSize="10"/>
-                                    </Button>
+                                    <TextBlock Text="Reset filters"
+                                               FontSize="10"/>
                                 </StackPanel>
-                            </Border>
-
-                            <!-- Floating map controls -->
-                            <StackPanel HorizontalAlignment="Right"
-                                        VerticalAlignment="Top"
-                                        Margin="0,14,14,0">
-                                <Button Style="{StaticResource IconButton}"
-                                        Margin="0,0,0,5"
-                                        Click="MapZoomInButton_Click"
-                                        ToolTip="Zoom in">
-                                    <fa:IconBlock Icon="Plus" FontSize="11"/>
-                                </Button>
-                                <Border Background="#D90D100C"
-                                        BorderBrush="#703A4033"
-                                        BorderThickness="1"
-                                        CornerRadius="4"
-                                        Padding="3"
-                                        Margin="0,0,0,5">
-                                    <TextBlock x:Name="MapZoomText"
-                                               Text="100%"
-                                               Foreground="{StaticResource TextSecondary}"
-                                               FontSize="9"
-                                               TextAlignment="Center"/>
-                                </Border>
-                                <Button Style="{StaticResource IconButton}"
-                                        Margin="0,0,0,5"
-                                        Click="MapZoomOutButton_Click"
-                                        ToolTip="Zoom out">
-                                    <fa:IconBlock Icon="Minus" FontSize="11"/>
-                                </Button>
-                                <Button Style="{StaticResource IconButton}"
-                                        Margin="0,0,0,5"
-                                        Click="MapFitButton_Click"
-                                        ToolTip="Fit entire reserve">
-                                    <fa:IconBlock Icon="Expand" FontSize="11"/>
-                                </Button>
-                                <Button Style="{StaticResource IconButton}"
-                                        Margin="0,0,0,5"
-                                        Click="MapCenterPlayerButton_Click"
-                                        ToolTip="Center on player once">
-                                    <fa:IconBlock Icon="Crosshairs" FontSize="11"/>
-                                </Button>
-                                <Button x:Name="FollowPlayerButton"
-                                        Style="{StaticResource IconButton}"
-                                        Click="FollowPlayerButton_Click"
-                                        ToolTip="Follow player continuously">
-                                    <fa:IconBlock Icon="LocationArrow" FontSize="11"/>
-                                </Button>
-                            </StackPanel>
+                            </Button>
                         </Grid>
+                    </Border>
 
-                        <!-- INSPECTOR + LOADED LIST -->
-                        <Grid Grid.Column="2"
-                              Background="{StaticResource SidebarBackground}">
+                    <!-- TARGET / POPULATION INSTRUMENT -->
+                    <Border Width="382"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Stretch"
+                            Margin="18"
+                            Background="#ED0D100C"
+                            BorderBrush="#8A343A2F"
+                            BorderThickness="1"
+                            CornerRadius="6">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="20"
+                                              ShadowDepth="0"
+                                              Opacity="0.25"
+                                              Color="#000000"/>
+                        </Border.Effect>
+
+                        <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="304"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="1"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
-                            <Border Grid.Row="0"
-                                    BorderBrush="{StaticResource BorderBrush}"
-                                    BorderThickness="1,1,0,1"
-                                    Padding="15">
-                                <Grid>
+                            <!-- Selected target -->
+                            <Grid Grid.Row="0"
+                                  Margin="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="4"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border x:Name="SelectedAccentBar"
+                                        Grid.Column="0"
+                                        Background="{StaticResource AccentBrush}"
+                                        CornerRadius="6,0,0,0"/>
+
+                                <Grid Grid.Column="1"
+                                      Margin="16,15,15,14">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <Grid>
+                                    <Grid Grid.Row="0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
+
                                         <StackPanel>
-                                            <TextBlock Text="SELECTED ANIMAL" Style="{StaticResource SectionLabel}"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <fa:IconBlock Icon="Crosshairs"
+                                                              Foreground="{StaticResource TextFaint}"
+                                                              FontSize="9"
+                                                              Margin="0,0,7,0"
+                                                              VerticalAlignment="Center"/>
+                                                <TextBlock Text="TARGET INSPECTOR"
+                                                           Foreground="{StaticResource TextFaint}"
+                                                           FontFamily="Bahnschrift SemiCondensed, Segoe UI"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="9"/>
+                                            </StackPanel>
                                             <TextBlock x:Name="SelectedAnimalTitle"
                                                        Text="Select an animal"
                                                        FontFamily="Bahnschrift SemiCondensed, Segoe UI"
                                                        FontWeight="SemiBold"
-                                                       FontSize="19"/>
+                                                       FontSize="23"
+                                                       Margin="0,3,0,0"/>
                                             <TextBlock x:Name="SelectedDistanceText"
-                                                       Text="Click a marker or loaded animal"
+                                                       Text="Click a map marker or loaded animal"
                                                        Foreground="{StaticResource TextSecondary}"
                                                        FontSize="10"
-                                                       Margin="0,2,0,0"/>
+                                                       Margin="0,1,0,0"/>
                                         </StackPanel>
+
                                         <Button x:Name="FollowSelectedAnimalButton"
                                                 Grid.Column="1"
                                                 Style="{StaticResource PrimaryButton}"
-                                                Width="38"
-                                                Height="34"
+                                                Width="40"
+                                                Height="38"
                                                 Padding="0"
                                                 IsEnabled="False"
                                                 Click="FollowSelectedAnimalButton_Click"
                                                 ToolTip="Follow selected animal">
-                                            <fa:IconBlock Icon="Crosshairs" FontSize="12"/>
+                                            <fa:IconBlock Icon="LocationCrosshairs"
+                                                          FontSize="12"/>
                                         </Button>
                                     </Grid>
 
                                     <StackPanel x:Name="SelectedBadgesPanel"
                                                 Grid.Row="1"
                                                 Orientation="Horizontal"
-                                                Margin="0,13,0,13"
+                                                Margin="0,13,0,12"
                                                 Visibility="Collapsed">
-                                        <Border Background="#181B15"
-                                                BorderBrush="{StaticResource BorderBrush}"
+                                        <Border Background="#1B1E18"
+                                                BorderBrush="#41483A"
                                                 BorderThickness="1"
                                                 CornerRadius="3"
                                                 Padding="8,4"
                                                 Margin="0,0,6,0">
                                             <TextBlock x:Name="SelectedGenderText"
                                                        Text="—"
-                                                       FontSize="10"
+                                                       FontSize="9"
                                                        FontWeight="SemiBold"/>
                                         </Border>
-                                        <Border Background="#181B15"
-                                                BorderBrush="{StaticResource BorderBrush}"
+
+                                        <Border Background="#1B1E18"
+                                                BorderBrush="#41483A"
                                                 BorderThickness="1"
                                                 CornerRadius="3"
                                                 Padding="8,4"
                                                 Margin="0,0,6,0">
                                             <TextBlock x:Name="SelectedDifficultyText"
                                                        Text="—"
-                                                       FontSize="10"
+                                                       FontSize="9"
                                                        FontWeight="SemiBold"/>
                                         </Border>
+
                                         <Border x:Name="SelectedTrophyBadge"
-                                                Background="#181B15"
-                                                BorderBrush="{StaticResource BorderBrush}"
+                                                Background="#1B1E18"
+                                                BorderBrush="{StaticResource BorderStrong}"
                                                 BorderThickness="1"
                                                 CornerRadius="3"
                                                 Padding="8,4">
                                             <TextBlock x:Name="SelectedTrophyText"
                                                        Text="—"
-                                                       FontSize="10"
+                                                       FontSize="9"
                                                        FontWeight="SemiBold"/>
                                         </Border>
                                     </StackPanel>
@@ -481,45 +470,74 @@
                                           Visibility="Collapsed">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="1"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="1"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <StackPanel Margin="0,0,12,12">
+                                        <StackPanel Margin="0,4,12,12">
                                             <TextBlock Text="TROPHY SCORE" Style="{StaticResource SectionLabel}"/>
-                                            <TextBlock x:Name="SelectedScoreText" Text="—" Style="{StaticResource MetricValue}"/>
+                                            <TextBlock x:Name="SelectedScoreText"
+                                                       Text="—"
+                                                       Style="{StaticResource MetricValue}"
+                                                       FontSize="21"/>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="1" Margin="0,0,0,12">
+                                        <Border Grid.Column="1"
+                                                Grid.RowSpan="3"
+                                                Background="{StaticResource BorderBrush}"/>
+                                        <StackPanel Grid.Column="2"
+                                                    Margin="14,4,0,12">
                                             <TextBlock Text="WEIGHT" Style="{StaticResource SectionLabel}"/>
-                                            <TextBlock x:Name="SelectedWeightText" Text="—" Style="{StaticResource MetricValue}"/>
+                                            <TextBlock x:Name="SelectedWeightText"
+                                                       Text="—"
+                                                       Style="{StaticResource MetricValue}"
+                                                       FontSize="21"/>
                                         </StackPanel>
-                                        <StackPanel Grid.Row="1" Margin="0,0,12,0">
-                                            <TextBlock Text="FUR" Style="{StaticResource SectionLabel}"/>
+
+                                        <Border Grid.Row="1"
+                                                Grid.ColumnSpan="3"
+                                                Background="{StaticResource BorderBrush}"/>
+
+                                        <StackPanel Grid.Row="2"
+                                                    Margin="0,12,12,0">
+                                            <TextBlock Text="FUR TYPE" Style="{StaticResource SectionLabel}"/>
                                             <TextBlock x:Name="SelectedFurText"
                                                        Text="—"
                                                        FontWeight="SemiBold"
+                                                       FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
-                                        <StackPanel Grid.Row="1" Grid.Column="1">
+                                        <StackPanel Grid.Row="2"
+                                                    Grid.Column="2"
+                                                    Margin="14,12,0,0">
                                             <TextBlock Text="HEALTH" Style="{StaticResource SectionLabel}"/>
                                             <TextBlock x:Name="SelectedHealthText"
                                                        Text="—"
-                                                       FontWeight="SemiBold"/>
+                                                       FontWeight="SemiBold"
+                                                       FontSize="12"/>
                                         </StackPanel>
                                     </Grid>
 
                                     <StackPanel x:Name="SelectedFooterPanel"
                                                 Grid.Row="3"
-                                                Visibility="Collapsed">
-                                        <TextBlock x:Name="SelectedThresholdText"
-                                                   Text="Select an animal to see trophy threshold context."
-                                                   Foreground="{StaticResource TextSecondary}"
-                                                   FontSize="10"
-                                                   Margin="0,8,0,0"
-                                                   TextWrapping="Wrap"/>
+                                                Visibility="Collapsed"
+                                                Margin="0,12,0,0">
+                                        <Border Background="#241A0E"
+                                                BorderBrush="#4A351C"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="9,7">
+                                            <TextBlock x:Name="SelectedThresholdText"
+                                                       Text="Trophy threshold context"
+                                                       Foreground="#E8C68E"
+                                                       FontSize="9"
+                                                       TextWrapping="Wrap"/>
+                                        </Border>
+
                                         <Expander x:Name="SelectedTechnicalPanel"
                                                   Header="Developer details"
                                                   Visibility="Collapsed"
@@ -529,7 +547,7 @@
                                                            Text="—"
                                                            Foreground="{StaticResource TextSecondary}"
                                                            FontFamily="Cascadia Mono, Consolas"
-                                                           FontSize="10"
+                                                           FontSize="9"
                                                            TextWrapping="Wrap"/>
                                                 <Button Content="Probe native level"
                                                         HorizontalAlignment="Left"
@@ -539,55 +557,237 @@
                                         </Expander>
                                     </StackPanel>
                                 </Grid>
-                            </Border>
+                            </Grid>
 
                             <Border Grid.Row="1"
-                                    BorderBrush="{StaticResource BorderBrush}"
-                                    BorderThickness="1,0,0,0">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="45"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-                                    <Grid Grid.Row="0" Margin="13,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Orientation="Horizontal"
-                                                    VerticalAlignment="Center">
-                                            <fa:IconBlock Icon="Paw"
-                                                          Foreground="{StaticResource AccentBrush}"
-                                                          FontSize="11"
-                                                          Margin="0,0,8,0"/>
-                                            <TextBlock Text="LOADED ANIMALS"
-                                                       FontFamily="Bahnschrift SemiCondensed, Segoe UI"
-                                                       FontSize="11"
-                                                       FontWeight="SemiBold"/>
-                                        </StackPanel>
-                                        <TextBlock Grid.Column="1"
-                                                   Text="double-click to follow"
-                                                   Foreground="{StaticResource TextFaint}"
-                                                   FontSize="9"
-                                                   VerticalAlignment="Center"/>
-                                    </Grid>
+                                    Background="{StaticResource BorderBrush}"/>
+
+                            <!-- Loaded target list -->
+                            <Grid Grid.Row="2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="46"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0"
+                                      Margin="14,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Orientation="Horizontal"
+                                                VerticalAlignment="Center">
+                                        <fa:IconBlock Icon="Paw"
+                                                      Foreground="{StaticResource AccentBrush}"
+                                                      FontSize="10"
+                                                      Margin="0,0,8,0"/>
+                                        <TextBlock Text="LOADED ANIMALS"
+                                                   FontFamily="Bahnschrift SemiCondensed, Segoe UI"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="11"/>
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Column="1"
+                                               Text="DOUBLE-CLICK TO FOLLOW"
+                                               Foreground="{StaticResource TextFaint}"
+                                               FontSize="8"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <Grid Grid.Row="1">
+                                    <TextBlock x:Name="NoLoadedAnimalsText"
+                                               Text="ATTACH TO COTW TO SCAN LOADED ANIMALS"
+                                               Foreground="{StaticResource TextFaint}"
+                                               FontFamily="Bahnschrift SemiCondensed, Segoe UI"
+                                               FontSize="9"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+
                                     <DataGrid x:Name="LiveAnimalsGrid"
-                                              Grid.Row="1"
+                                              Background="Transparent"
                                               SelectionMode="Single"
                                               SelectionChanged="LiveAnimalsGrid_SelectionChanged"
                                               MouseDoubleClick="LiveAnimalsGrid_MouseDoubleClick"
-                                              HorizontalScrollBarVisibility="Disabled">
+                                              HeadersVisibility="None"
+                                              RowHeight="50"
+                                              GridLinesVisibility="Horizontal"
+                                              HorizontalGridLinesBrush="#20251D"
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              VerticalScrollBarVisibility="Auto">
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="Species" Binding="{Binding DisplaySpecies}" Width="*"/>
-                                            <DataGridTextColumn Header="Level" Binding="{Binding Difficulty}" Width="78"/>
-                                            <DataGridTextColumn Header="Trophy" Binding="{Binding Trophy}" Width="72"/>
-                                            <DataGridTextColumn Header="Dist" Binding="{Binding DistanceText}" Width="62"/>
+                                            <DataGridTemplateColumn Width="*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="4,2,10,2">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="4"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <Border Grid.Column="0"
+                                                                    Width="3"
+                                                                    Margin="0,4,0,4"
+                                                                    Background="{Binding AccentBrush}"
+                                                                    CornerRadius="2"/>
+
+                                                            <StackPanel Grid.Column="1"
+                                                                        Margin="10,0,8,0"
+                                                                        VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding DisplaySpecies}"
+                                                                           FontFamily="Bahnschrift SemiCondensed, Segoe UI"
+                                                                           FontSize="12"
+                                                                           FontWeight="SemiBold"
+                                                                           TextTrimming="CharacterEllipsis"/>
+                                                                <StackPanel Orientation="Horizontal"
+                                                                            Margin="0,2,0,0">
+                                                                    <TextBlock Text="{Binding Difficulty}"
+                                                                               Foreground="{StaticResource TextSecondary}"
+                                                                               FontSize="9"/>
+                                                                    <TextBlock Text="  ·  "
+                                                                               Foreground="{StaticResource TextFaint}"
+                                                                               FontSize="9"/>
+                                                                    <TextBlock Text="{Binding Trophy}"
+                                                                               Foreground="{Binding AccentBrush}"
+                                                                               FontSize="9"
+                                                                               FontWeight="SemiBold"/>
+                                                                    <TextBlock Text="  ·  "
+                                                                               Foreground="{StaticResource TextFaint}"
+                                                                               FontSize="9"/>
+                                                                    <TextBlock Text="{Binding Fur}"
+                                                                               Foreground="{StaticResource TextFaint}"
+                                                                               FontSize="9"
+                                                                               TextTrimming="CharacterEllipsis"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+
+                                                            <TextBlock Grid.Column="2"
+                                                                       Text="{Binding DistanceText}"
+                                                                       Foreground="{StaticResource TextSecondary}"
+                                                                       FontFamily="Bahnschrift SemiCondensed, Segoe UI"
+                                                                       FontSize="10"
+                                                                       FontWeight="SemiBold"
+                                                                       VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </Grid>
-                            </Border>
+                            </Grid>
                         </Grid>
-                    </Grid>
+                    </Border>
+
+                    <!-- Following state -->
+                    <Border HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Margin="0,52,0,0"
+                            Padding="9,6"
+                            Background="#E80D100C"
+                            BorderBrush="#74413B2B"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:IconBlock Icon="LocationCrosshairs"
+                                          Foreground="{StaticResource AccentBrush}"
+                                          FontSize="9"
+                                          Margin="0,0,7,0"
+                                          VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FollowingStatusText"
+                                       Text="Free navigation"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       FontSize="9"
+                                       FontWeight="SemiBold"/>
+                            <Button x:Name="StopFollowingButton"
+                                    Style="{StaticResource QuietButton}"
+                                    Width="23"
+                                    Height="20"
+                                    Padding="0"
+                                    Margin="7,-3,-4,-3"
+                                    IsEnabled="False"
+                                    Click="StopFollowingButton_Click"
+                                    ToolTip="Stop following">
+                                <fa:IconBlock Icon="Xmark" FontSize="8"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Map command dock -->
+                    <Border HorizontalAlignment="Center"
+                            VerticalAlignment="Bottom"
+                            Margin="0,0,0,18"
+                            Padding="5"
+                            Background="#E80D100C"
+                            BorderBrush="#7A3A4033"
+                            BorderThickness="1"
+                            CornerRadius="5">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource IconButton}"
+                                    Width="32"
+                                    Height="32"
+                                    Click="MapZoomOutButton_Click"
+                                    ToolTip="Zoom out">
+                                <fa:IconBlock Icon="Minus" FontSize="9"/>
+                            </Button>
+
+                            <Border Width="48"
+                                    Margin="4,0"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1,0">
+                                <TextBlock x:Name="MapZoomText"
+                                           Text="100%"
+                                           Foreground="{StaticResource TextSecondary}"
+                                           FontFamily="Bahnschrift SemiCondensed, Segoe UI"
+                                           FontSize="9"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+
+                            <Button Style="{StaticResource IconButton}"
+                                    Width="32"
+                                    Height="32"
+                                    Click="MapZoomInButton_Click"
+                                    ToolTip="Zoom in">
+                                <fa:IconBlock Icon="Plus" FontSize="9"/>
+                            </Button>
+
+                            <Border Width="1"
+                                    Height="20"
+                                    Margin="6,6"
+                                    Background="{StaticResource BorderStrong}"/>
+
+                            <Button Style="{StaticResource IconButton}"
+                                    Width="32"
+                                    Height="32"
+                                    Margin="0,0,4,0"
+                                    Click="MapFitButton_Click"
+                                    ToolTip="Fit entire reserve">
+                                <fa:IconBlock Icon="Expand" FontSize="9"/>
+                            </Button>
+
+                            <Button Style="{StaticResource IconButton}"
+                                    Width="32"
+                                    Height="32"
+                                    Margin="0,0,4,0"
+                                    Click="MapCenterPlayerButton_Click"
+                                    ToolTip="Center on player once">
+                                <fa:IconBlock Icon="Crosshairs" FontSize="9"/>
+                            </Button>
+
+                            <Button x:Name="FollowPlayerButton"
+                                    Style="{StaticResource IconButton}"
+                                    Width="32"
+                                    Height="32"
+                                    Click="FollowPlayerButton_Click"
+                                    ToolTip="Follow player continuously">
+                                <fa:IconBlock Icon="LocationArrow" FontSize="9"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </TabItem>
 
