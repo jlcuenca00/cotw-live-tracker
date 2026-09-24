@@ -26,6 +26,13 @@
         <SolidColorBrush x:Key="RareBrush" Color="#3AB8B0"/>
         <SolidColorBrush x:Key="NormalBrush" Color="#90968A"/>
 
+        <!-- Spacing rhythm -->
+        <Thickness x:Key="PageGutter">20</Thickness>
+        <Thickness x:Key="PanelPadding">16</Thickness>
+        <Thickness x:Key="PanelPaddingCompact">12</Thickness>
+        <Thickness x:Key="FieldGap">0,0,0,14</Thickness>
+        <Thickness x:Key="SectionGap">0,0,0,18</Thickness>
+
         <Style TargetType="Window">
             <Setter Property="Background" Value="{StaticResource AppBackground}"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
@@ -63,7 +70,7 @@
             <Setter Property="Background" Value="{StaticResource PanelRaised}"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderStrong}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="11,7"/>
+            <Setter Property="Padding" Value="10,6"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -124,8 +131,8 @@
             <Setter Property="Background" Value="#151811"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderStrong}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="9,6"/>
-            <Setter Property="MinHeight" Value="33"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="MinHeight" Value="34"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBox">
@@ -230,8 +237,8 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CaretBrush" Value="{StaticResource AccentBright}"/>
             <Setter Property="SelectionBrush" Value="#704D2F13"/>
-            <Setter Property="Padding" Value="9,6"/>
-            <Setter Property="MinHeight" Value="33"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="MinHeight" Value="34"/>
         </Style>
 
         <Style TargetType="CheckBox">
@@ -302,8 +309,8 @@
             <Setter Property="CanUserDeleteRows" Value="False"/>
             <Setter Property="IsReadOnly" Value="True"/>
             <Setter Property="AutoGenerateColumns" Value="False"/>
-            <Setter Property="RowHeight" Value="31"/>
-            <Setter Property="ColumnHeaderHeight" Value="34"/>
+            <Setter Property="RowHeight" Value="34"/>
+            <Setter Property="ColumnHeaderHeight" Value="36"/>
             <Setter Property="SelectionUnit" Value="FullRow"/>
         </Style>
 
@@ -349,9 +356,9 @@
             <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="Padding" Value="15,11"/>
-            <Setter Property="Margin" Value="7,2"/>
-            <Setter Property="MinWidth" Value="158"/>
+            <Setter Property="Padding" Value="15,12"/>
+            <Setter Property="Margin" Value="8,3"/>
+            <Setter Property="MinWidth" Value="164"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="VerticalContentAlignment" Value="Stretch"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
