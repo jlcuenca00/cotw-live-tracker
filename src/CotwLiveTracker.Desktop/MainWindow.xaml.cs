@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private IReadOnlyList<LiveAnimalView> _latestLiveAnimals =
         Array.Empty<LiveAnimalView>();
     private bool _centerMapOnNextSnapshot;
+    private bool _isInitializing = true;
     private bool _showGroupInfo = true;
     private bool _showCoordinates = true;
     private bool _showDeveloperDetails;
@@ -97,6 +98,9 @@ public partial class MainWindow : Window
             _refreshTimer.Stop();
             _session.Dispose();
         };
+
+        _isInitializing = false;
+        InterfaceSettings_Changed(this, new RoutedEventArgs());
     }
 
     private void AttachButton_Click(object sender, RoutedEventArgs e)
@@ -1029,6 +1033,11 @@ public partial class MainWindow : Window
 
     private void InterfaceSettings_Changed(object sender, RoutedEventArgs e)
     {
+        if (_isInitializing)
+        {
+            return;
+        }
+
         Topmost = AlwaysOnTopCheck.IsChecked == true;
         _showGroupInfo = ShowGroupCheck.IsChecked == true;
         _showCoordinates = ShowCoordinatesCheck.IsChecked == true;
