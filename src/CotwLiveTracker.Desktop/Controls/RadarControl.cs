@@ -320,6 +320,7 @@ public sealed class RadarControl : FrameworkElement
             ApplyInitialViewportFill(
                 width,
                 height);
+            ClampMapPan();
 
             RenderMap(
                 drawingContext,
@@ -360,8 +361,8 @@ public sealed class RadarControl : FrameworkElement
             return;
         }
 
-        var availableWidth = Math.Max(1d, width - 20d);
-        var availableHeight = Math.Max(1d, height - 20d);
+        var availableWidth = Math.Max(1d, width);
+        var availableHeight = Math.Max(1d, height);
 
         var coverZoom = Math.Max(
             availableWidth / fitted.Width,
