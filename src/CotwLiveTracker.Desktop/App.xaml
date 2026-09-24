@@ -375,8 +375,8 @@
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
         </Style>
 
         <Style TargetType="TabItem">
@@ -386,8 +386,8 @@
             <Setter Property="Padding" Value="15,12"/>
             <Setter Property="Margin" Value="8,3"/>
             <Setter Property="MinWidth" Value="164"/>
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
@@ -417,10 +417,10 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="TabChrome" Property="Background" Value="#1D1810"/>
-                                <Setter TargetName="TabChrome" Property="BorderBrush" Value="#49351D"/>
+                                <Setter TargetName="TabChrome" Property="Background" Value="#2A1C0F"/>
+                                <Setter TargetName="TabChrome" Property="BorderBrush" Value="#6A4722"/>
                                 <Setter TargetName="AccentBar" Property="Visibility" Value="Visible"/>
-                                <Setter Property="Foreground" Value="#F3C27E"/>
+                                <Setter Property="Foreground" Value="#FFF1DA"/>
                             </Trigger>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
