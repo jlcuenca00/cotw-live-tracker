@@ -941,6 +941,9 @@ public partial class MainWindow : Window
 
         SelectedAnimalTitle.Text = animal.DisplaySpecies;
         SelectedDistanceText.Text = $"{animal.DistanceMeters:F0} m from player";
+        SelectedBadgesPanel.Visibility = Visibility.Visible;
+        SelectedMetricsGrid.Visibility = Visibility.Visible;
+        SelectedFooterPanel.Visibility = Visibility.Visible;
         SelectedGenderText.Text = animal.Gender;
         SelectedDifficultyText.Text = animal.Difficulty;
         SelectedTrophyText.Text = animal.Trophy;
@@ -988,6 +991,9 @@ public partial class MainWindow : Window
 
         SelectedAnimalTitle.Text = "Select an animal";
         SelectedDistanceText.Text = "Click a marker or loaded animal";
+        SelectedBadgesPanel.Visibility = Visibility.Collapsed;
+        SelectedMetricsGrid.Visibility = Visibility.Collapsed;
+        SelectedFooterPanel.Visibility = Visibility.Collapsed;
         SelectedGenderText.Text = "—";
         SelectedDifficultyText.Text = "—";
         SelectedTrophyText.Text = "—";
