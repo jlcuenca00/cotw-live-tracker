@@ -23,6 +23,13 @@ internal sealed class DesktopTrackerSession : IDisposable
             .Select(item => new ReserveChoice(item.Index, item.Reserve.DisplayName))
             .ToArray();
 
+    public static IReadOnlyList<string> SpeciesForReserve(int reserveIndex) =>
+        PopulationReserveCatalog.Get(reserveIndex)
+            .Species
+            .Select(species => species.Replace('_', ' '))
+            .OrderBy(species => species, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
     public bool IsAttached =>
         _process is not null &&
         !_process.HasExited &&
@@ -151,6 +158,13 @@ internal sealed class DesktopTrackerSession : IDisposable
             Trophy: record?.Trophy ?? "Unknown",
             Fur: record?.FurName ?? "Unknown",
             FurRarity: record?.FurRarity ?? "Unknown",
+            FurProbability: record?.FurProbability ?? 0f,
+            NextTrophyText: record is null
+                ? "Trophy threshold unavailable until population identity resolves."
+                : PopulationAnimalMetadataCatalog.GetNextTrophyThresholdText(
+                    record.Species,
+                    live.Score,
+                    record.IsGreatOne),
             IsRare: record?.IsRareFur ?? false,
             IsGreatOne: record?.IsGreatOne ?? false,
             DistanceMeters: live.DistanceMeters,
@@ -167,6 +181,21 @@ internal sealed class DesktopTrackerSession : IDisposable
             RelativeX: live.Position.X - camera.X,
             RelativeZ: live.Position.Z - camera.Z,
             Address: live.Address);
+    }
+
+    public int? ReadExperimentalNativeDifficulty(
+        LiveAnimalView animal)
+    {
+        ArgumentNullException.ThrowIfNull(animal);
+
+        if (!IsAttached || _memory is null)
+        {
+            return null;
+        }
+
+        return AnimalDifficultyMemoryProbe.TryReadPreferredCandidate(
+            _memory,
+            animal.Address);
     }
 
     public string ProbeDifficulty(

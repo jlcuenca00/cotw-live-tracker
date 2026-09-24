@@ -8,12 +8,18 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PlatformTarget>x64</PlatformTarget>
-    <AssemblyName>CotwLiveTracker.Desktop</AssemblyName>
+    <AssemblyName>WildTrace</AssemblyName>
+    <Product>WildTrace</Product>
+    <Description>Read-only live radar and population scanner for theHunter: Call of the Wild</Description>
+    <VersionPrefix>0.16.0</VersionPrefix>
+    <VersionSuffix>beta.3</VersionSuffix>
+    <InformationalVersion>0.16.0-beta.3</InformationalVersion>
     <RootNamespace>CotwLiveTracker.Desktop</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CotwLiveTracker\CotwLiveTracker.csproj" />
+    <PackageReference Include="FontAwesome.Sharp" Version="6.6.0" />
   </ItemGroup>
 
   <ItemGroup>

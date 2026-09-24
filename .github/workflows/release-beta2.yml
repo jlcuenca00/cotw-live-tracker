@@ -1,0 +1,100 @@
+name: release-beta3
+
+on:
+  push:
+    branches:
+      - feature/live-radar-redesign
+    paths:
+      - "RELEASE_TRIGGER_v0.16.0-beta.3.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Self-test
+        shell: pwsh
+        run: |
+          dotnet restore src/CotwLiveTracker/CotwLiveTracker.csproj
+          dotnet run --project src/CotwLiveTracker/CotwLiveTracker.csproj -c Release -- --selftest
+
+      - name: Publish WildTrace
+        shell: pwsh
+        run: |
+          dotnet publish src/CotwLiveTracker.Desktop/CotwLiveTracker.Desktop.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:PublishReadyToRun=false `
+            -p:DebugType=None `
+            -o publish
+
+      - name: Prepare release folder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release/WildTrace-v0.16.0-beta.3 | Out-Null
+          Copy-Item publish/WildTrace.exe release/WildTrace-v0.16.0-beta.3/
+          Copy-Item publish/offsets release/WildTrace-v0.16.0-beta.3/offsets -Recurse
+          Copy-Item publish/data release/WildTrace-v0.16.0-beta.3/data -Recurse
+          Copy-Item RELEASE_README.txt release/WildTrace-v0.16.0-beta.3/
+          Copy-Item README.md release/WildTrace-v0.16.0-beta.3/
+          Copy-Item THIRD_PARTY_NOTICES.md release/WildTrace-v0.16.0-beta.3/
+
+      - name: Create ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path release/WildTrace-v0.16.0-beta.3 `
+            -DestinationPath WildTrace-v0.16.0-beta.3-win-x64.zip `
+            -CompressionLevel Optimal
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WildTrace-v0.16.0-beta.3-win-x64
+          path: WildTrace-v0.16.0-beta.3-win-x64.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub pre-release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.16.0-beta.3 `
+            WildTrace-v0.16.0-beta.3-win-x64.zip `
+            --repo ${{ github.repository }} `
+            --target ${{ github.sha }} `
+            --title "WildTrace v0.16.0 Beta 3" `
+            --prerelease `
+            --notes @"
+          WildTrace v0.16.0 Beta 3
+
+          Highlights
+          - Full-bleed Live Map with improved responsive layout
+          - Follow Player and Follow Animal tracking
+          - Reserve-aware animal filters
+          - Population scanner and selected-animal inspector
+          - Improved radar markers and map interaction
+          - Safer map panning/clamping with edge breathing room
+          - Experimental native difficulty diagnostics
+          - Read-only process access; no game-memory writes
+
+          Notes
+          - Layton Lake currently has the most verified live map calibration.
+          - Native difficulty detection is still experimental.
+          - Game updates may require an updated memory-offset profile.
+          "@

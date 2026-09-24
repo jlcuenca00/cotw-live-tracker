@@ -75,6 +75,33 @@ internal static class PopulationAnimalMetadataCatalog
             DifficultyName(metadata.Levels.Count));
     }
 
+    public static string GetNextTrophyThresholdText(
+        string species,
+        float score,
+        bool isGreatOne)
+    {
+        if (isGreatOne ||
+            !Catalog.Value.Species.TryGetValue(species, out var metadata))
+        {
+            return "Top trophy tier reached.";
+        }
+
+        foreach (var medal in new[] { "bronze", "silver", "gold", "diamond" })
+        {
+            if (!metadata.TrophyBands.TryGetValue(medal, out var band) ||
+                score >= band.Min)
+            {
+                continue;
+            }
+
+            var name = char.ToUpperInvariant(medal[0]) + medal[1..];
+            var delta = band.Min - score;
+            return $"Next medal · {name} at {band.Min:F2} · {delta:F2} pts away";
+        }
+
+        return "Diamond threshold reached.";
+    }
+
     public static PopulationTrophyResult GetTrophy(string species, float score, bool isGreatOne)
     {
         if (isGreatOne)

@@ -5,26 +5,35 @@ using CotwLiveTracker.Desktop.Maps;
 
 namespace CotwLiveTracker.Desktop.Controls;
 
+public enum RadarFollowMode
+{
+    None,
+    Player,
+    Animal
+}
+
 public sealed class RadarControl : FrameworkElement
 {
     private static readonly Brush BackgroundBrush =
-        new SolidColorBrush(Color.FromRgb(9, 13, 18));
+        new SolidColorBrush(Color.FromRgb(8, 10, 7));
     private static readonly Brush GridBrush =
-        new SolidColorBrush(Color.FromRgb(51, 65, 85));
+        new SolidColorBrush(Color.FromRgb(52, 59, 47));
     private static readonly Brush TextBrush =
-        new SolidColorBrush(Color.FromRgb(203, 213, 225));
+        new SolidColorBrush(Color.FromRgb(218, 214, 199));
     private static readonly Brush PlayerBrush =
-        new SolidColorBrush(Color.FromRgb(103, 232, 249));
+        new SolidColorBrush(Color.FromRgb(214, 138, 46));
     private static readonly Brush NormalBrush =
-        new SolidColorBrush(Color.FromRgb(226, 232, 240));
+        new SolidColorBrush(Color.FromRgb(144, 150, 138));
+    private static readonly Brush SilverBrush =
+        new SolidColorBrush(Color.FromRgb(90, 140, 200));
     private static readonly Brush GoldBrush =
-        new SolidColorBrush(Color.FromRgb(251, 191, 36));
+        new SolidColorBrush(Color.FromRgb(214, 164, 61));
     private static readonly Brush DiamondBrush =
-        new SolidColorBrush(Color.FromRgb(96, 165, 250));
+        new SolidColorBrush(Color.FromRgb(155, 101, 213));
     private static readonly Brush RareBrush =
-        new SolidColorBrush(Color.FromRgb(34, 211, 238));
+        new SolidColorBrush(Color.FromRgb(58, 184, 176));
     private static readonly Brush GreatOneBrush =
-        new SolidColorBrush(Color.FromRgb(244, 114, 182));
+        new SolidColorBrush(Color.FromRgb(220, 90, 81));
     private static readonly Brush MapShadeBrush =
         new SolidColorBrush(Color.FromArgb(28, 0, 0, 0));
     private static readonly Brush MarkerShadowBrush =
@@ -32,18 +41,20 @@ public sealed class RadarControl : FrameworkElement
     private static readonly Brush PlayerHaloBrush =
         new SolidColorBrush(Color.FromArgb(72, 103, 232, 249));
     private static readonly Brush ReferenceBrush =
-        new SolidColorBrush(Color.FromRgb(251, 146, 60));
+        new SolidColorBrush(Color.FromRgb(191, 126, 55));
     private static readonly Brush ReferenceFillBrush =
-        new SolidColorBrush(Color.FromArgb(70, 251, 146, 60));
+        new SolidColorBrush(Color.FromArgb(32, 191, 126, 55));
 
     private const double MinimumMapZoom = 1d;
-    private const double MaximumMapZoom = 10d;
+    private const double MaximumMapZoom = 24d;
     private const double ZoomStep = 1.25d;
+    private const double MapBreathingRoomX = 28d;
+    private const double MapBreathingRoomY = 22d;
+    private const double InitialMapGutter = 18d;
 
     private readonly List<(Point Point, LiveAnimalView Animal)> _markers = [];
     private IReadOnlyList<LiveAnimalView> _animals = [];
     private LiveAnimalView? _selectedAnimal;
-    private double _maxRangeMeters = 1000d;
     private ImageSource? _mapImage;
     private ReserveMapCalibration? _mapCalibration;
     private double _cameraX;
@@ -55,9 +66,24 @@ public sealed class RadarControl : FrameworkElement
     private Vector _panAtDragStart;
     private bool _isDragging;
     private bool _dragMoved;
+    private bool _fillViewportOnNextRender;
+    private RadarFollowMode _followMode;
+    private nint? _followedAnimalAddress;
+    private LiveAnimalView? _followedAnimal;
 
     public Action<LiveAnimalView>? AnimalSelected { get; set; }
     public Action<double>? MapZoomChanged { get; set; }
+    public Action? FollowModeChanged { get; set; }
+    public Action? FollowTargetLost { get; set; }
+
+    public bool ShowReferences { get; set; } = true;
+
+    // The center of useful map space can differ from the physical control center
+    // because the floating filter/inspector panels occupy asymmetric widths.
+    public double SafeInsetLeft { get; set; }
+    public double SafeInsetTop { get; set; }
+    public double SafeInsetRight { get; set; }
+    public double SafeInsetBottom { get; set; }
 
     public IReadOnlyList<LiveAnimalView> Animals
     {
@@ -69,16 +95,6 @@ public sealed class RadarControl : FrameworkElement
         }
     }
 
-    public double MaxRangeMeters
-    {
-        get => _maxRangeMeters;
-        set
-        {
-            _maxRangeMeters = Math.Clamp(value, 100d, 2000d);
-            InvalidateVisual();
-        }
-    }
-
     public ImageSource? MapImage
     {
         get => _mapImage;
@@ -86,6 +102,7 @@ public sealed class RadarControl : FrameworkElement
         {
             _mapImage = value;
             ResetMapView();
+            _fillViewportOnNextRender = value is not null;
             InvalidateVisual();
         }
     }
@@ -106,6 +123,8 @@ public sealed class RadarControl : FrameworkElement
         MapCalibration is not null;
 
     public double MapZoom => _mapZoom;
+    public RadarFollowMode FollowMode => _followMode;
+    public LiveAnimalView? FollowedAnimal => _followedAnimal;
 
     public double CameraX
     {
@@ -138,13 +157,14 @@ public sealed class RadarControl : FrameworkElement
     }
 
     public void ZoomIn() =>
-        SetMapZoom(_mapZoom * ZoomStep, ViewCenter());
+        SetMapZoom(_mapZoom * ZoomStep, TrackingCenter());
 
     public void ZoomOut() =>
-        SetMapZoom(_mapZoom / ZoomStep, ViewCenter());
+        SetMapZoom(_mapZoom / ZoomStep, TrackingCenter());
 
     public void ResetMapView()
     {
+        StopFollowing();
         _mapZoom = MinimumMapZoom;
         _mapPan = default;
         MapZoomChanged?.Invoke(_mapZoom);
@@ -152,6 +172,102 @@ public sealed class RadarControl : FrameworkElement
     }
 
     public void CenterOnPlayer()
+    {
+        StopFollowing();
+        CenterOnWorld(CameraX, CameraZ, ensureTrackingZoom: true);
+    }
+
+    public bool StartFollowingPlayer()
+    {
+        if (!IsMapMode)
+        {
+            return false;
+        }
+
+        _followMode = RadarFollowMode.Player;
+        _followedAnimalAddress = null;
+        _followedAnimal = null;
+        CenterOnWorld(CameraX, CameraZ, ensureTrackingZoom: true);
+        FollowModeChanged?.Invoke();
+        return true;
+    }
+
+    public bool StartFollowingAnimal(LiveAnimalView? animal)
+    {
+        if (!IsMapMode || animal is null)
+        {
+            return false;
+        }
+
+        _followMode = RadarFollowMode.Animal;
+        _followedAnimalAddress = animal.Address;
+        _followedAnimal = animal;
+        CenterOnWorld(animal.X, animal.Z, ensureTrackingZoom: true);
+        FollowModeChanged?.Invoke();
+        return true;
+    }
+
+    public void StopFollowing()
+    {
+        if (_followMode == RadarFollowMode.None &&
+            _followedAnimalAddress is null &&
+            _followedAnimal is null)
+        {
+            return;
+        }
+
+        _followMode = RadarFollowMode.None;
+        _followedAnimalAddress = null;
+        _followedAnimal = null;
+        FollowModeChanged?.Invoke();
+    }
+
+    public void RefreshFollowing(IReadOnlyList<LiveAnimalView> loadedAnimals)
+    {
+        if (!IsMapMode)
+        {
+            if (_followMode != RadarFollowMode.None)
+            {
+                StopFollowing();
+            }
+
+            return;
+        }
+
+        if (_followMode == RadarFollowMode.Player)
+        {
+            CenterOnWorld(CameraX, CameraZ, ensureTrackingZoom: false);
+            return;
+        }
+
+        if (_followMode != RadarFollowMode.Animal ||
+            _followedAnimalAddress is null)
+        {
+            return;
+        }
+
+        var target = loadedAnimals.FirstOrDefault(
+            animal => animal.Address == _followedAnimalAddress.Value);
+
+        if (target is null)
+        {
+            _followMode = RadarFollowMode.None;
+            _followedAnimalAddress = null;
+            _followedAnimal = null;
+            FollowModeChanged?.Invoke();
+            FollowTargetLost?.Invoke();
+            InvalidateVisual();
+            return;
+        }
+
+        _followedAnimal = target;
+        CenterOnWorld(target.X, target.Z, ensureTrackingZoom: false);
+    }
+
+    private void CenterOnWorld(
+        double worldX,
+        double worldZ,
+        bool ensureTrackingZoom)
     {
         if (!IsMapMode ||
             ActualWidth <= 0d ||
@@ -162,28 +278,28 @@ public sealed class RadarControl : FrameworkElement
 
         var calibration = MapCalibration!;
         var normalized = calibration.WorldToNormalized(
-            CameraX,
-            CameraZ);
+            worldX,
+            worldZ);
 
-        var fitted = FitImageRect(
-            MapImage!.Width,
-            MapImage.Height,
-            ActualWidth,
-            ActualHeight,
-            10d);
-        var viewCenter = ViewCenter();
-        var basePlayer = NormalizedToPoint(
+        var fitted = BaseMapRect();
+        var renderCenter = RenderCenter();
+        var trackingCenter = TrackingCenter();
+        var baseTarget = NormalizedToPoint(
             normalized,
             fitted);
-        var baseVector = basePlayer - viewCenter;
+        var baseVector = baseTarget - renderCenter;
 
-        if (_mapZoom <= 1.01d)
+        if (ensureTrackingZoom &&
+            _mapZoom <= 1.01d)
         {
             _mapZoom = 2.5d;
             MapZoomChanged?.Invoke(_mapZoom);
         }
 
-        _mapPan = -baseVector * _mapZoom;
+        _mapPan =
+            (trackingCenter - renderCenter) -
+            (baseVector * _mapZoom);
+        ClampMapPan();
         InvalidateVisual();
     }
 
@@ -208,6 +324,11 @@ public sealed class RadarControl : FrameworkElement
 
         if (IsMapMode)
         {
+            ApplyInitialViewportFill(
+                width,
+                height);
+            ClampMapPan();
+
             RenderMap(
                 drawingContext,
                 width,
@@ -222,6 +343,49 @@ public sealed class RadarControl : FrameworkElement
         }
     }
 
+    private void ApplyInitialViewportFill(
+        double width,
+        double height)
+    {
+        if (!_fillViewportOnNextRender ||
+            MapImage is null ||
+            width <= 0d ||
+            height <= 0d)
+        {
+            return;
+        }
+
+        var viewport = FullViewportRect();
+        var fitted = BaseMapRect();
+
+        if (fitted.Width <= 0d ||
+            fitted.Height <= 0d)
+        {
+            return;
+        }
+
+        var availableWidth = Math.Max(
+            1d,
+            viewport.Width - (InitialMapGutter * 2d));
+        var availableHeight = Math.Max(
+            1d,
+            viewport.Height - (InitialMapGutter * 2d));
+
+        var coverZoom = Math.Max(
+            availableWidth / fitted.Width,
+            availableHeight / fitted.Height);
+
+        _mapZoom = Math.Clamp(
+            coverZoom,
+            MinimumMapZoom,
+            MaximumMapZoom);
+        _mapPan = default;
+        ClampMapPan();
+        _fillViewportOnNextRender = false;
+
+        MapZoomChanged?.Invoke(_mapZoom);
+    }
+
     private void RenderMap(
         DrawingContext drawingContext,
         double width,
@@ -230,17 +394,12 @@ public sealed class RadarControl : FrameworkElement
         var image = MapImage!;
         var calibration = MapCalibration!;
 
-        var fitted = FitImageRect(
-            image.Width,
-            image.Height,
-            width,
-            height,
-            10d);
+        var fitted = BaseMapRect();
         var mapRect = TransformMapRect(
             fitted,
             _mapZoom,
             _mapPan,
-            ViewCenter());
+            RenderCenter());
 
         drawingContext.PushClip(
             new RectangleGeometry(
@@ -255,6 +414,10 @@ public sealed class RadarControl : FrameworkElement
             null,
             mapRect);
 
+        DrawMapEdgeFade(
+            drawingContext,
+            mapRect);
+
         var references =
             ReserveMapReferenceCatalog.Get(
                 calibration.ReserveIndex);
@@ -265,18 +428,21 @@ public sealed class RadarControl : FrameworkElement
                     CameraZ))
             .FirstOrDefault();
 
-        foreach (var reference in references)
+        if (ShowReferences)
         {
-            var referencePoint = NormalizedToPoint(
-                reference.ExpectedNormalized,
-                mapRect);
+            foreach (var reference in references)
+            {
+                var referencePoint = NormalizedToPoint(
+                    reference.ExpectedNormalized,
+                    mapRect);
 
-            drawingContext.DrawEllipse(
-                ReferenceFillBrush,
-                new Pen(ReferenceBrush, 1.5d),
-                referencePoint,
-                5d,
-                5d);
+                drawingContext.DrawEllipse(
+                    ReferenceFillBrush,
+                    new Pen(ReferenceBrush, 1.5d),
+                    referencePoint,
+                    4d,
+                    4d);
+            }
         }
 
         var playerNormalized =
@@ -287,7 +453,7 @@ public sealed class RadarControl : FrameworkElement
             playerNormalized,
             mapRect);
 
-        if (nearestReference is not null)
+        if (ShowReferences && nearestReference is not null)
         {
             var nearestPoint = NormalizedToPoint(
                 nearestReference.ExpectedNormalized,
@@ -327,26 +493,46 @@ public sealed class RadarControl : FrameworkElement
         {
             drawingContext.DrawEllipse(
                 PlayerHaloBrush,
+                new Pen(PlayerBrush, 1.5d),
+                player,
+                12d,
+                12d);
+
+            drawingContext.DrawEllipse(
+                new SolidColorBrush(Color.FromArgb(235, 14, 17, 12)),
                 new Pen(PlayerBrush, 2d),
                 player,
-                11d,
-                11d);
+                7d,
+                7d);
+
+            drawingContext.DrawLine(
+                new Pen(PlayerBrush, 1.8d),
+                new Point(player.X - 10d, player.Y),
+                new Point(player.X - 4d, player.Y));
+            drawingContext.DrawLine(
+                new Pen(PlayerBrush, 1.8d),
+                new Point(player.X + 4d, player.Y),
+                new Point(player.X + 10d, player.Y));
+            drawingContext.DrawLine(
+                new Pen(PlayerBrush, 1.8d),
+                new Point(player.X, player.Y - 10d),
+                new Point(player.X, player.Y - 4d));
+            drawingContext.DrawLine(
+                new Pen(PlayerBrush, 1.8d),
+                new Point(player.X, player.Y + 4d),
+                new Point(player.X, player.Y + 10d));
+
             drawingContext.DrawEllipse(
                 PlayerBrush,
                 null,
                 player,
-                4.5d,
-                4.5d);
+                2.2d,
+                2.2d);
         }
 
-        foreach (var animal in Animals)
+        foreach (var animal in Animals
+                     .OrderBy(MarkerPriority))
         {
-            if (animal.DistanceMeters >
-                MaxRangeMeters)
-            {
-                continue;
-            }
-
             var normalized =
                 calibration.WorldToNormalized(
                     animal.X,
@@ -373,25 +559,76 @@ public sealed class RadarControl : FrameworkElement
 
         drawingContext.Pop();
 
-        DrawLabel(
-            drawingContext,
-            "N",
-            new Point(
-                width / 2d - 5d,
-                12d),
-            TextBrush,
-            12d);
+    }
 
-        var referenceStatus = nearestReference is null
-            ? ""
-            : $" · nearest {nearestReference.Name} {nearestReference.DistanceTo(CameraX, CameraZ):F1}m";
+    private static void DrawMapEdgeFade(
+        DrawingContext drawingContext,
+        Rect mapRect)
+    {
+        var fadeSize = Math.Clamp(
+            Math.Min(mapRect.Width, mapRect.Height) * 0.075d,
+            34d,
+            82d);
 
-        DrawLabel(
-            drawingContext,
-            $"{calibration.ReserveName} · player X/Z {CameraX:F1}, {CameraZ:F1} · UV {playerNormalized.X:F4}, {playerNormalized.Y:F4}{referenceStatus}",
-            new Point(14d, height - 27d),
-            TextBrush,
-            11d);
+        var edgeColor = Color.FromArgb(238, 8, 10, 7);
+        var transparent = Color.FromArgb(0, 8, 10, 7);
+
+        var leftBrush = new LinearGradientBrush(
+            edgeColor,
+            transparent,
+            new Point(0d, 0.5d),
+            new Point(1d, 0.5d));
+        var rightBrush = new LinearGradientBrush(
+            transparent,
+            edgeColor,
+            new Point(0d, 0.5d),
+            new Point(1d, 0.5d));
+        var topBrush = new LinearGradientBrush(
+            edgeColor,
+            transparent,
+            new Point(0.5d, 0d),
+            new Point(0.5d, 1d));
+        var bottomBrush = new LinearGradientBrush(
+            transparent,
+            edgeColor,
+            new Point(0.5d, 0d),
+            new Point(0.5d, 1d));
+
+        drawingContext.DrawRectangle(
+            leftBrush,
+            null,
+            new Rect(
+                mapRect.Left,
+                mapRect.Top,
+                Math.Min(fadeSize, mapRect.Width),
+                mapRect.Height));
+
+        drawingContext.DrawRectangle(
+            rightBrush,
+            null,
+            new Rect(
+                Math.Max(mapRect.Left, mapRect.Right - fadeSize),
+                mapRect.Top,
+                Math.Min(fadeSize, mapRect.Width),
+                mapRect.Height));
+
+        drawingContext.DrawRectangle(
+            topBrush,
+            null,
+            new Rect(
+                mapRect.Left,
+                mapRect.Top,
+                mapRect.Width,
+                Math.Min(fadeSize, mapRect.Height)));
+
+        drawingContext.DrawRectangle(
+            bottomBrush,
+            null,
+            new Rect(
+                mapRect.Left,
+                Math.Max(mapRect.Top, mapRect.Bottom - fadeSize),
+                mapRect.Width,
+                Math.Min(fadeSize, mapRect.Height)));
     }
 
     private void RenderRelativeRadar(
@@ -408,6 +645,16 @@ public sealed class RadarControl : FrameworkElement
             Math.Min(width, height) /
                 2d -
             36d);
+
+        var displayRange = Math.Max(
+            250d,
+            Animals
+                .Select(animal => Math.Sqrt(
+                    (animal.RelativeX * animal.RelativeX) +
+                    (animal.RelativeZ * animal.RelativeZ)))
+                .DefaultIfEmpty(0d)
+                .Max() *
+            1.08d);
 
         var gridPen =
             new Pen(
@@ -428,7 +675,7 @@ public sealed class RadarControl : FrameworkElement
 
             DrawLabel(
                 drawingContext,
-                $"{MaxRangeMeters * ratio:F0}m",
+                $"{displayRange * ratio:F0}m",
                 new Point(
                     center.X + 6d,
                     center.Y -
@@ -471,34 +718,18 @@ public sealed class RadarControl : FrameworkElement
             5d,
             5d);
 
-        if (MaxRangeMeters <= 0d)
+        foreach (var animal in Animals
+                     .OrderBy(MarkerPriority))
         {
-            return;
-        }
-
-        foreach (var animal in Animals)
-        {
-            var planarDistance = Math.Sqrt(
-                (animal.RelativeX *
-                 animal.RelativeX) +
-                (animal.RelativeZ *
-                 animal.RelativeZ));
-
-            if (planarDistance >
-                MaxRangeMeters)
-            {
-                continue;
-            }
-
             var point =
                 new Point(
                     center.X +
                     (animal.RelativeX /
-                     MaxRangeMeters *
+                     displayRange *
                      radius),
                     center.Y -
                     (animal.RelativeZ /
-                     MaxRangeMeters *
+                     displayRange *
                      radius));
 
             DrawAnimalMarker(
@@ -515,29 +746,54 @@ public sealed class RadarControl : FrameworkElement
         LiveAnimalView animal,
         bool mapMode)
     {
-        var brush =
-            MarkerBrush(animal);
+        var brush = MarkerBrush(animal);
         var selected =
             SelectedAnimal is not null &&
-            SelectedAnimal.Address ==
-            animal.Address;
-        var markerRadius =
-            selected
-                ? 8d
-                : mapMode
-                    ? 6d
-                    : 5d;
+            SelectedAnimal.Address == animal.Address;
+        var followed =
+            FollowMode == RadarFollowMode.Animal &&
+            FollowedAnimal?.Address == animal.Address;
 
-        if (selected)
+        var zoomScale = mapMode
+            ? Math.Clamp(0.90d + (Math.Log(Math.Max(1d, _mapZoom), 2d) * 0.08d), 0.9d, 1.28d)
+            : 1d;
+        var markerRadius =
+            (selected || followed ? 10.5d : 8.25d) * zoomScale;
+
+        if (animal.IsGreatOne)
+        {
+            drawingContext.DrawEllipse(
+                new SolidColorBrush(Color.FromArgb(30, 220, 90, 81)),
+                null,
+                point,
+                markerRadius + 11d,
+                markerRadius + 11d);
+            drawingContext.DrawEllipse(
+                new SolidColorBrush(Color.FromArgb(56, 220, 90, 81)),
+                null,
+                point,
+                markerRadius + 6d,
+                markerRadius + 6d);
+        }
+
+        if (animal.IsRare && !animal.IsGreatOne)
         {
             drawingContext.DrawEllipse(
                 null,
-                new Pen(
-                    PlayerBrush,
-                    2d),
+                new Pen(RareBrush, 2d),
                 point,
-                11d,
-                11d);
+                markerRadius + 4d,
+                markerRadius + 4d);
+        }
+
+        if (selected || followed)
+        {
+            drawingContext.DrawEllipse(
+                null,
+                new Pen(PlayerBrush, followed ? 2.5d : 1.8d),
+                point,
+                markerRadius + 5d,
+                markerRadius + 5d);
         }
 
         drawingContext.DrawEllipse(
@@ -546,14 +802,29 @@ public sealed class RadarControl : FrameworkElement
             point,
             markerRadius + 2d,
             markerRadius + 2d);
+
         drawingContext.DrawEllipse(
-            brush,
-            null,
+            new SolidColorBrush(Color.FromArgb(238, 11, 13, 10)),
+            new Pen(new SolidColorBrush(Color.FromArgb(220, 0, 0, 0)), 3.6d),
+            point,
+            markerRadius + 0.8d,
+            markerRadius + 0.8d);
+
+        drawingContext.DrawEllipse(
+            new SolidColorBrush(Color.FromArgb(236, 17, 20, 15)),
+            new Pen(brush, 2.1d),
             point,
             markerRadius,
             markerRadius);
 
+        DrawPawMarker(
+            drawingContext,
+            point,
+            brush,
+            markerRadius);
+
         if (selected ||
+            followed ||
             animal.IsGreatOne ||
             animal.IsRare ||
             string.Equals(
@@ -563,16 +834,90 @@ public sealed class RadarControl : FrameworkElement
         {
             DrawLabel(
                 drawingContext,
-                $"{animal.DisplaySpecies} · {animal.DistanceMeters:F0}m",
+                $"{animal.DisplaySpecies} · {animal.Difficulty} · {animal.DistanceMeters:F0}m",
                 new Point(
-                    point.X + 10d,
+                    point.X + markerRadius + 6d,
                     point.Y - 8d),
                 brush,
-                11d);
+                10.5d);
         }
 
-        _markers.Add(
-            (point, animal));
+        _markers.Add((point, animal));
+    }
+
+    private static void DrawPawMarker(
+        DrawingContext drawingContext,
+        Point center,
+        Brush brush,
+        double radius)
+    {
+        var toeRadius = Math.Max(1.15d, radius * 0.16d);
+        var toeY = center.Y - (radius * 0.30d);
+        var toeOffsets = new[]
+        {
+            new Point(-radius * 0.38d, toeY + (radius * 0.08d)),
+            new Point(-radius * 0.13d, toeY - (radius * 0.08d)),
+            new Point(radius * 0.13d, toeY - (radius * 0.08d)),
+            new Point(radius * 0.38d, toeY + (radius * 0.08d))
+        };
+
+        foreach (var toe in toeOffsets)
+        {
+            drawingContext.DrawEllipse(
+                brush,
+                null,
+                new Point(center.X + toe.X, toe.Y),
+                toeRadius,
+                toeRadius);
+        }
+
+        drawingContext.DrawEllipse(
+            brush,
+            null,
+            new Point(
+                center.X,
+                center.Y + (radius * 0.18d)),
+            radius * 0.34d,
+            radius * 0.29d);
+    }
+
+    private static int MarkerPriority(LiveAnimalView animal)
+    {
+        if (animal.IsGreatOne)
+        {
+            return 50;
+        }
+
+        if (animal.IsRare)
+        {
+            return 40;
+        }
+
+        if (string.Equals(
+                animal.Trophy,
+                "Diamond",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return 30;
+        }
+
+        if (string.Equals(
+                animal.Trophy,
+                "Gold",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return 20;
+        }
+
+        if (string.Equals(
+                animal.Trophy,
+                "Silver",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return 10;
+        }
+
+        return 0;
     }
 
     protected override void OnMouseWheel(
@@ -635,12 +980,18 @@ public sealed class RadarControl : FrameworkElement
 
         if (delta.Length > 3d)
         {
+            if (!_dragMoved)
+            {
+                StopFollowing();
+            }
+
             _dragMoved = true;
         }
 
         _mapPan =
             _panAtDragStart +
             delta;
+        ClampMapPan();
         InvalidateVisual();
         e.Handled = true;
     }
@@ -662,7 +1013,9 @@ public sealed class RadarControl : FrameworkElement
 
         if (!_dragMoved)
         {
-            SelectMarkerAt(click);
+            SelectMarkerAt(
+                click,
+                e.ClickCount >= 2);
         }
 
         _dragMoved = false;
@@ -670,7 +1023,8 @@ public sealed class RadarControl : FrameworkElement
     }
 
     private void SelectMarkerAt(
-        Point click)
+        Point click,
+        bool follow)
     {
         var nearest =
             _markers
@@ -682,7 +1036,7 @@ public sealed class RadarControl : FrameworkElement
                          click).Length
                 })
                 .Where(item =>
-                    item.Distance <= 14d)
+                    item.Distance <= 18d)
                 .OrderBy(item =>
                     item.Distance)
                 .FirstOrDefault();
@@ -696,6 +1050,12 @@ public sealed class RadarControl : FrameworkElement
             nearest.Marker.Animal;
         AnimalSelected?.Invoke(
             nearest.Marker.Animal);
+
+        if (follow)
+        {
+            StartFollowingAnimal(
+                nearest.Marker.Animal);
+        }
     }
 
     private void SetMapZoom(
@@ -721,7 +1081,7 @@ public sealed class RadarControl : FrameworkElement
         }
 
         var center =
-            ViewCenter();
+            RenderCenter();
         var anchorVector =
             anchor - center;
         var unscaledVector =
@@ -741,15 +1101,125 @@ public sealed class RadarControl : FrameworkElement
             _mapPan = default;
         }
 
+        ClampMapPan();
+
         MapZoomChanged?.Invoke(
             _mapZoom);
+
+        if (_followMode == RadarFollowMode.Player)
+        {
+            CenterOnWorld(CameraX, CameraZ, ensureTrackingZoom: false);
+        }
+        else if (_followMode == RadarFollowMode.Animal &&
+                 _followedAnimal is not null)
+        {
+            CenterOnWorld(
+                _followedAnimal.X,
+                _followedAnimal.Z,
+                ensureTrackingZoom: false);
+        }
+
         InvalidateVisual();
     }
 
-    private Point ViewCenter() =>
+    private void ClampMapPan()
+    {
+        if (!IsMapMode ||
+            MapImage is null ||
+            ActualWidth <= 0d ||
+            ActualHeight <= 0d)
+        {
+            return;
+        }
+
+        var viewport = FullViewportRect();
+        var fitted = BaseMapRect();
+        var scaledWidth = fitted.Width * _mapZoom;
+        var scaledHeight = fitted.Height * _mapZoom;
+
+        // A small, intentional gutter is allowed at the extreme pan limit so
+        // the reserve edge does not feel glued to the application chrome.
+        var maxPanX = scaledWidth >= viewport.Width
+            ? ((scaledWidth - viewport.Width) / 2d) + MapBreathingRoomX
+            : 0d;
+        var maxPanY = scaledHeight >= viewport.Height
+            ? ((scaledHeight - viewport.Height) / 2d) + MapBreathingRoomY
+            : 0d;
+
+        _mapPan = new Vector(
+            Math.Clamp(_mapPan.X, -maxPanX, maxPanX),
+            Math.Clamp(_mapPan.Y, -maxPanY, maxPanY));
+    }
+
+    private Rect SafeViewportRect()
+    {
+        var width = Math.Max(1d, ActualWidth);
+        var height = Math.Max(1d, ActualHeight);
+
+        const double minimumSafeWidth = 280d;
+        const double minimumSafeHeight = 260d;
+
+        var left = Math.Clamp(
+            SafeInsetLeft,
+            0d,
+            Math.Max(0d, width - minimumSafeWidth));
+        var right = Math.Clamp(
+            SafeInsetRight,
+            0d,
+            Math.Max(0d, width - left - minimumSafeWidth));
+
+        var top = Math.Clamp(
+            SafeInsetTop,
+            0d,
+            Math.Max(0d, height - minimumSafeHeight));
+        var bottom = Math.Clamp(
+            SafeInsetBottom,
+            0d,
+            Math.Max(0d, height - top - minimumSafeHeight));
+
+        return new Rect(
+            left,
+            top,
+            Math.Max(1d, width - left - right),
+            Math.Max(1d, height - top - bottom));
+    }
+
+    private Rect FullViewportRect() =>
         new(
-            ActualWidth / 2d,
-            ActualHeight / 2d);
+            0d,
+            0d,
+            Math.Max(1d, ActualWidth),
+            Math.Max(1d, ActualHeight));
+
+    private Rect BaseMapRect()
+    {
+        var viewport = FullViewportRect();
+
+        return FitImageRect(
+            MapImage?.Width ?? 1d,
+            MapImage?.Height ?? 1d,
+            viewport.Width,
+            viewport.Height,
+            0d);
+    }
+
+    private Point RenderCenter()
+    {
+        var viewport = FullViewportRect();
+
+        return new Point(
+            viewport.Left + (viewport.Width / 2d),
+            viewport.Top + (viewport.Height / 2d));
+    }
+
+    private Point TrackingCenter()
+    {
+        var safeViewport = SafeViewportRect();
+
+        return new Point(
+            safeViewport.Left + (safeViewport.Width / 2d),
+            safeViewport.Top + (safeViewport.Height / 2d));
+    }
 
     private static Rect TransformMapRect(
         Rect fitted,
@@ -843,20 +1313,18 @@ public sealed class RadarControl : FrameworkElement
     private static Brush MarkerBrush(
         LiveAnimalView animal)
     {
-        if (animal.IsGreatOne)
+        var level = DifficultyLevel(animal.Difficulty);
+
+        if (animal.IsGreatOne || level >= 10)
         {
             return GreatOneBrush;
-        }
-
-        if (animal.IsRare)
-        {
-            return RareBrush;
         }
 
         if (string.Equals(
                 animal.Trophy,
                 "Diamond",
-                StringComparison.OrdinalIgnoreCase))
+                StringComparison.OrdinalIgnoreCase) ||
+            level >= 9)
         {
             return DiamondBrush;
         }
@@ -869,7 +1337,29 @@ public sealed class RadarControl : FrameworkElement
             return GoldBrush;
         }
 
+        if (string.Equals(
+                animal.Trophy,
+                "Silver",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return SilverBrush;
+        }
+
         return NormalBrush;
+    }
+
+    private static int DifficultyLevel(string value)
+    {
+        var separator = value.IndexOf('-');
+        var level = separator >= 0
+            ? value[..separator]
+            : value;
+
+        return int.TryParse(
+            level.Trim().TrimStart('~'),
+            out var parsed)
+            ? parsed
+            : 0;
     }
 
     private static void DrawLabel(

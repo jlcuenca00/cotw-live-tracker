@@ -1,5 +1,6 @@
 using CotwLiveTracker.Memory;
 using CotwLiveTracker.Population;
+using System.Windows.Media;
 
 namespace CotwLiveTracker.Desktop;
 
@@ -15,6 +16,8 @@ public sealed record LiveAnimalView(
     string Trophy,
     string Fur,
     string FurRarity,
+    float FurProbability,
+    string NextTrophyText,
     bool IsRare,
     bool IsGreatOne,
     float DistanceMeters,
@@ -37,10 +40,59 @@ public sealed record LiveAnimalView(
     public string HealthText => $"{Health:F0}/{MaxHealth:F0}";
     public string WeightText => $"{Weight:F2}";
     public string ScoreText => $"{Score:F2}";
+    public string FurProbabilityText => FurProbability > 0f ? $"{FurProbability * 100f:F3}%" : "—";
+    public Brush AccentBrush
+    {
+        get
+        {
+            var level = DifficultyLevel(Difficulty);
+
+            if (IsGreatOne || level >= 10)
+            {
+                return new SolidColorBrush(Color.FromRgb(220, 90, 81));
+            }
+
+            if (string.Equals(Trophy, "Diamond", StringComparison.OrdinalIgnoreCase) ||
+                level >= 9)
+            {
+                return new SolidColorBrush(Color.FromRgb(155, 101, 213));
+            }
+
+            if (string.Equals(Trophy, "Gold", StringComparison.OrdinalIgnoreCase))
+            {
+                return new SolidColorBrush(Color.FromRgb(214, 164, 61));
+            }
+
+            if (string.Equals(Trophy, "Silver", StringComparison.OrdinalIgnoreCase))
+            {
+                return new SolidColorBrush(Color.FromRgb(90, 140, 200));
+            }
+
+            if (IsRare)
+            {
+                return new SolidColorBrush(Color.FromRgb(58, 184, 176));
+            }
+
+            return new SolidColorBrush(Color.FromRgb(144, 150, 138));
+        }
+    }
+
     public string GroupText => GroupIndex is null ? "—" : $"G{GroupIndex}";
     public string IdentityText => GroupIndex is null || AnimalIndex is null
         ? "Unresolved"
         : $"G{GroupIndex} #{AnimalIndex}";
+
+    private static int DifficultyLevel(string value)
+    {
+        var separator = value.IndexOf('-');
+        var level = separator >= 0 ? value[..separator] : value;
+
+        return int.TryParse(
+            level.Trim().TrimStart('~'),
+            out var parsed)
+            ? parsed
+            : 0;
+    }
 }
 
 internal sealed record DesktopSnapshot(

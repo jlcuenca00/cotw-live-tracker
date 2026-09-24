@@ -2,9 +2,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using CotwLiveTracker.Desktop.Controls;
 using CotwLiveTracker.Desktop.Maps;
 using Microsoft.Win32;
 using CotwLiveTracker.Population;
+using FontAwesome.Sharp;
 
 namespace CotwLiveTracker.Desktop;
 
@@ -20,6 +22,10 @@ public partial class MainWindow : Window
     private IReadOnlyList<LiveAnimalView> _latestLiveAnimals =
         Array.Empty<LiveAnimalView>();
     private bool _centerMapOnNextSnapshot;
+    private bool _isInitializing = true;
+    private bool _showGroupInfo = true;
+    private bool _showCoordinates = true;
+    private bool _showDeveloperDetails;
 
     public MainWindow()
     {
@@ -33,6 +39,7 @@ public partial class MainWindow : Window
         if (ReserveBox.SelectedItem is ReserveChoice initialReserve)
         {
             ConfigureReserveMap(initialReserve.Index);
+            UpdateSpeciesFilters(initialReserve.Index);
         }
 
         PopulationTrophyFilter.ItemsSource = new[]
@@ -70,6 +77,15 @@ public partial class MainWindow : Window
         {
             MapZoomText.Text = $"{zoom * 100d:F0}%";
         };
+        Radar.FollowModeChanged = UpdateFollowUi;
+        Radar.FollowTargetLost = () =>
+        {
+            UpdateFollowUi();
+            FollowingStatusText.Text = "Target no longer loaded";
+            FollowingStatusText.Foreground =
+                (Brush)FindResource("WarnBrush");
+        };
+        UpdateFollowUi();
 
         _refreshTimer = new DispatcherTimer
         {
@@ -82,6 +98,9 @@ public partial class MainWindow : Window
             _refreshTimer.Stop();
             _session.Dispose();
         };
+
+        _isInitializing = false;
+        InterfaceSettings_Changed(this, new RoutedEventArgs());
     }
 
     private void AttachButton_Click(object sender, RoutedEventArgs e)
@@ -99,6 +118,7 @@ public partial class MainWindow : Window
         {
             _session.Attach(reserve.Index);
             ConfigureReserveMap(reserve.Index);
+            UpdateSpeciesFilters(reserve.Index);
             SetConnected();
             UpdateStaticSessionUi();
             ApplyPopulationFilters();
@@ -136,14 +156,15 @@ public partial class MainWindow : Window
             _latestLiveAnimals = animals;
 
             DashboardAnimalsGrid.ItemsSource = animals.Take(10).ToArray();
-            ApplyLiveFilters(animals);
 
-            Radar.MaxRangeMeters = RadarRangeSlider.Value;
             Radar.CameraX = snapshot.CameraPosition.X;
             Radar.CameraZ = snapshot.CameraPosition.Z;
+            ApplyLiveFilters(animals);
+            Radar.RefreshFollowing(animals);
 
             if (_centerMapOnNextSnapshot &&
-                Radar.IsMapMode)
+                Radar.IsMapMode &&
+                Radar.FollowMode == RadarFollowMode.None)
             {
                 Radar.CenterOnPlayer();
                 _centerMapOnNextSnapshot = false;
@@ -169,6 +190,10 @@ public partial class MainWindow : Window
                 if (replacement is not null)
                 {
                     ShowSelectedAnimal(replacement);
+                }
+                else
+                {
+                    ClearSelectedAnimal();
                 }
             }
         }
@@ -198,12 +223,60 @@ public partial class MainWindow : Window
                 : _session.ExecutableSha256;
     }
 
+    private void ReserveBox_SelectionChanged(
+        object sender,
+        SelectionChangedEventArgs e)
+    {
+        if (ReserveBox.SelectedItem is ReserveChoice reserve)
+        {
+            UpdateSpeciesFilters(reserve.Index);
+        }
+    }
+
+    private void UpdateSpeciesFilters(int reserveIndex)
+    {
+        var species = new[] { "All" }
+            .Concat(DesktopTrackerSession.SpeciesForReserve(reserveIndex))
+            .ToArray();
+
+        SetComboItems(LiveSpeciesFilter, species);
+        SetComboItems(PopulationSpeciesFilter, species);
+    }
+
+    private static void SetComboItems(
+        ComboBox combo,
+        IReadOnlyList<string> items)
+    {
+        var previous = combo.SelectedItem as string;
+        combo.ItemsSource = items;
+
+        combo.SelectedItem =
+            previous is not null &&
+            items.Contains(previous, StringComparer.OrdinalIgnoreCase)
+                ? items.First(item =>
+                    string.Equals(
+                        item,
+                        previous,
+                        StringComparison.OrdinalIgnoreCase))
+                : items.FirstOrDefault();
+
+        if (combo.SelectedIndex < 0 &&
+            items.Count > 0)
+        {
+            combo.SelectedIndex = 0;
+        }
+    }
+
     private void ApplyLiveFilters_Click(object sender, RoutedEventArgs e) =>
+        ApplyLiveFilters(_latestLiveAnimals);
+
+    private void LiveFilters_Changed(object sender, RoutedEventArgs e) =>
         ApplyLiveFilters(_latestLiveAnimals);
 
     private void ClearLiveFilters_Click(object sender, RoutedEventArgs e)
     {
-        LiveSpeciesFilter.Text = "";
+        LiveSearchFilter.Text = "";
+        LiveSpeciesFilter.SelectedIndex = 0;
         LiveTrophyFilter.SelectedIndex = 0;
         LiveDifficultyFilter.SelectedIndex = 0;
         LiveFurFilter.Text = "";
@@ -216,7 +289,16 @@ public partial class MainWindow : Window
     private void ApplyLiveFilters(
         IReadOnlyList<LiveAnimalView> animals)
     {
-        var species = LiveSpeciesFilter.Text.Trim();
+        var species = LiveSpeciesFilter.SelectedItem as string;
+        if (string.Equals(
+                species,
+                "All",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            species = null;
+        }
+
+        var search = LiveSearchFilter.Text.Trim();
         var fur = LiveFurFilter.Text.Trim();
 
         var trophy = LiveTrophyFilter.SelectedItem as string;
@@ -253,6 +335,14 @@ public partial class MainWindow : Window
         }
 
         var filtered = animals
+            .Where(animal =>
+                string.IsNullOrWhiteSpace(search) ||
+                animal.DisplaySpecies.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                animal.Fur.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                animal.Trophy.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                animal.Gender.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                animal.Difficulty.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                animal.IdentityText.Contains(search, StringComparison.OrdinalIgnoreCase))
             .Where(animal =>
                 string.IsNullOrWhiteSpace(species) ||
                 animal.DisplaySpecies.Contains(
@@ -291,20 +381,123 @@ public partial class MainWindow : Window
         LiveAnimalsGrid.ItemsSource = filtered;
         Radar.Animals = filtered;
         LiveFilterSummaryText.Text =
-            $"{filtered.Length:N0} shown / {animals.Count:N0} loaded";
+            $"{filtered.Length:N0} / {animals.Count:N0}";
+        NoLoadedAnimalsText.Visibility =
+            filtered.Length == 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
-        if (Radar.SelectedAnimal is { } selected &&
-            !filtered.Any(animal =>
-                animal.Address == selected.Address))
+        var activeFilters = new List<(string Key, string Label)>();
+        if (!string.IsNullOrWhiteSpace(search)) activeFilters.Add(("search", search));
+        if (!string.IsNullOrWhiteSpace(species)) activeFilters.Add(("species", species));
+        if (trophy is not null) activeFilters.Add(("trophy", trophy));
+        if (difficulty is not null) activeFilters.Add(("difficulty", $"Level {difficulty}"));
+        if (!string.IsNullOrWhiteSpace(fur)) activeFilters.Add(("fur", fur));
+        if (sex is not null) activeFilters.Add(("sex", sex));
+        if (LiveRareOnly.IsChecked == true) activeFilters.Add(("rare", "Rare"));
+        if (LiveGreatOneOnly.IsChecked == true) activeFilters.Add(("greatone", "Great One"));
+
+        RenderActiveFilterChips(activeFilters);
+    }
+
+    private void RenderActiveFilterChips(
+        IReadOnlyList<(string Key, string Label)> filters)
+    {
+        ActiveFilterChipsPanel.Children.Clear();
+        NoActiveFiltersText.Visibility =
+            filters.Count == 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        foreach (var (key, label) in filters)
         {
-            Radar.SelectedAnimal = null;
-            LiveAnimalsGrid.SelectedItem = null;
-            SelectedAnimalTitle.Text =
-                "Click a radar marker or live row";
-            SelectedAnimalDetails.Text =
-                "Distance, identity, score, fur and XYZ will appear here.";
+            var content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal
+            };
+            content.Children.Add(new TextBlock
+            {
+                Text = label,
+                FontSize = 10,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            content.Children.Add(new IconBlock
+            {
+                Icon = IconChar.Xmark,
+                FontSize = 8,
+                Margin = new Thickness(7, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var chip = new Button
+            {
+                Tag = key,
+                Content = content,
+                Padding = new Thickness(7, 4, 7, 4),
+                Margin = new Thickness(0, 0, 5, 5),
+                Background = (Brush)FindResource("PanelRaised"),
+                BorderBrush = (Brush)FindResource("BorderBrush")
+            };
+            chip.Click += ActiveFilterChip_Click;
+            ActiveFilterChipsPanel.Children.Add(chip);
         }
     }
+
+    private void ActiveFilterChip_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string key })
+        {
+            return;
+        }
+
+        switch (key)
+        {
+            case "search":
+                LiveSearchFilter.Text = "";
+                break;
+            case "species":
+                LiveSpeciesFilter.SelectedIndex = 0;
+                break;
+            case "trophy":
+                LiveTrophyFilter.SelectedIndex = 0;
+                break;
+            case "difficulty":
+                LiveDifficultyFilter.SelectedIndex = 0;
+                break;
+            case "fur":
+                LiveFurFilter.Text = "";
+                break;
+            case "sex":
+                LiveSexFilter.SelectedIndex = 0;
+                break;
+            case "rare":
+                LiveRareOnly.IsChecked = false;
+                break;
+            case "greatone":
+                LiveGreatOneOnly.IsChecked = false;
+                break;
+        }
+
+        ApplyLiveFilters(_latestLiveAnimals);
+    }
+
+    private static string FormatDifficultyLevel(int level) =>
+        level switch
+        {
+            1 => "1-Trivial",
+            2 => "2-Minor",
+            3 => "3-Very Easy",
+            4 => "4-Easy",
+            5 => "5-Medium",
+            6 => "6-Hard",
+            7 => "7-Very Hard",
+            8 => "8-Mythical",
+            9 => "9-Legendary",
+            10 => "10-Fabled",
+            _ => level.ToString()
+        };
 
     private static int ParseDifficultyLevel(
         string value)
@@ -329,9 +522,12 @@ public partial class MainWindow : Window
     private void ApplyPopulationFilters_Click(object sender, RoutedEventArgs e) =>
         ApplyPopulationFilters();
 
+    private void PopulationFilters_Changed(object sender, RoutedEventArgs e) =>
+        ApplyPopulationFilters();
+
     private void ClearPopulationFilters_Click(object sender, RoutedEventArgs e)
     {
-        PopulationSpeciesFilter.Text = "";
+        PopulationSpeciesFilter.SelectedIndex = 0;
         PopulationTrophyFilter.SelectedIndex = 0;
         PopulationDifficultyFilter.SelectedIndex = 0;
         PopulationFurFilter.Text = "";
@@ -346,7 +542,10 @@ public partial class MainWindow : Window
         if (_session.Population is null)
         {
             PopulationGrid.ItemsSource = Array.Empty<PopulationAnimalView>();
-            PopulationMatchText.Text = "0 matches";
+            PopulationMatchText.Text = "0 / 0";
+            PopulationDiamondText.Text = "0";
+            PopulationRareText.Text = "0";
+            PopulationGreatOneText.Text = "0";
             return;
         }
 
@@ -382,7 +581,15 @@ public partial class MainWindow : Window
             Sex: sex?.ToLowerInvariant(),
             ShowAll: true);
 
-        var species = PopulationSpeciesFilter.Text.Trim();
+        var species = PopulationSpeciesFilter.SelectedItem as string;
+        if (string.Equals(
+                species,
+                "All",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            species = null;
+        }
+
         var rows = _session.Population.Animals
             .Where(filters.Matches)
             .Where(animal =>
@@ -397,7 +604,13 @@ public partial class MainWindow : Window
 
         PopulationGrid.ItemsSource = rows;
         PopulationMatchText.Text =
-            $"{rows.Length:N0} matches / {_session.Population.Animals.Count:N0} total";
+            $"{rows.Length:N0} / {_session.Population.Animals.Count:N0}";
+        PopulationDiamondText.Text = rows.Count(row =>
+            string.Equals(row.Trophy, "Diamond", StringComparison.OrdinalIgnoreCase)).ToString("N0");
+        PopulationRareText.Text = rows.Count(row =>
+            string.Equals(row.Rarity, "Rare", StringComparison.OrdinalIgnoreCase)).ToString("N0");
+        PopulationGreatOneText.Text = rows.Count(row =>
+            string.Equals(row.Trophy, "Great One", StringComparison.OrdinalIgnoreCase)).ToString("N0");
     }
 
     private async void BuildMapsFromGameButton_Click(
@@ -422,7 +635,7 @@ public partial class MainWindow : Window
             .ToArray();
         IProgress<string> progress = new Progress<string>(message =>
         {
-            MapModeStatusText.Text = message;
+            SettingsMapStatusText.Text = message;
         });
 
         BuildMapsFromGameButton.IsEnabled = false;
@@ -479,7 +692,7 @@ public partial class MainWindow : Window
 
             if (result.Installed.Count == 0)
             {
-                MapModeStatusText.Text =
+                SettingsMapStatusText.Text =
                     "No known reserve map assets were found in the installed archives.";
                 MessageBox.Show(
                     this,
@@ -523,7 +736,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MapModeStatusText.Text =
+            SettingsMapStatusText.Text =
                 $"Map extraction failed · {ex.Message}";
             MessageBox.Show(
                 this,
@@ -597,9 +810,9 @@ public partial class MainWindow : Window
                 calibration,
                 applyCalibrationCrop: false);
             _centerMapOnNextSnapshot = true;
-            MapModeStatusText.Text =
-                $"{reserve.Name} · calibrated actual-map mode";
-            LoadMapImageButton.Content = "Replace map";
+            MapModeStatusText.Text = reserve.Name;
+            SettingsMapStatusText.Text =
+                $"{reserve.Name} map loaded from a manual image.";
         }
         catch (Exception ex)
         {
@@ -627,16 +840,18 @@ public partial class MainWindow : Window
                 ? "Map not cached · calibration pending · relative radar fallback"
                 : "Map cached · calibration pending · relative radar fallback";
             LoadMapImageButton.IsEnabled = false;
-            LoadMapImageButton.Content = "Load image";
+            SettingsMapStatusText.Text = mapPath is null
+                ? "Map cache not found. Build maps from the installed game."
+                : "Map cache exists, but this reserve has no verified calibration yet.";
             return;
         }
 
         LoadMapImageButton.IsEnabled = true;
         if (mapPath is null)
         {
-            MapModeStatusText.Text =
-                $"{calibration.ReserveName} calibrated · build maps or load image";
-            LoadMapImageButton.Content = "Load image";
+            MapModeStatusText.Text = calibration.ReserveName;
+            SettingsMapStatusText.Text =
+                "Verified calibration available. Build maps from the game or load an image.";
             return;
         }
 
@@ -660,23 +875,23 @@ public partial class MainWindow : Window
             _centerMapOnNextSnapshot = true;
 
             var cropStatus = applyCalibrationCrop
-                ? $" · image crop {1d / calibration.ImageCropWidth:F3}x"
+                ? $" · calibrated crop {1d / calibration.ImageCropWidth:F3}x"
                 : "";
 
-            MapModeStatusText.Text =
-                $"{calibration.ReserveName} · calibrated actual-map mode" +
+            MapModeStatusText.Text = calibration.ReserveName;
+            SettingsMapStatusText.Text =
+                $"{calibration.ReserveName} · map ready" +
                 (string.IsNullOrWhiteSpace(mapSource)
                     ? ""
                     : $" · source {mapSource}") +
                 cropStatus;
-            LoadMapImageButton.Content = "Replace image";
         }
         catch (Exception ex)
         {
             Radar.MapImage = null;
-            MapModeStatusText.Text =
+            MapModeStatusText.Text = "Map unavailable";
+            SettingsMapStatusText.Text =
                 $"Saved map failed to load · {ex.Message}";
-            LoadMapImageButton.Content = "Load image";
         }
     }
 
@@ -701,19 +916,6 @@ public partial class MainWindow : Window
         RoutedEventArgs e) =>
         Radar.CenterOnPlayer();
 
-    private void RadarRangeSlider_ValueChanged(
-        object sender,
-        RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (Radar is null || RadarRangeText is null)
-        {
-            return;
-        }
-
-        Radar.MaxRangeMeters = e.NewValue;
-        RadarRangeText.Text = $"{e.NewValue:F0} m";
-    }
-
     private void LiveAnimalsGrid_SelectionChanged(
         object sender,
         SelectionChangedEventArgs e)
@@ -724,7 +926,14 @@ public partial class MainWindow : Window
         }
 
         Radar.SelectedAnimal = animal;
+
+        if (Radar.FollowMode == RadarFollowMode.Animal)
+        {
+            Radar.StartFollowingAnimal(animal);
+        }
+
         ShowSelectedAnimal(animal);
+        UpdateFollowUi();
     }
 
     private void SelectLiveAnimal(LiveAnimalView animal)
@@ -734,28 +943,260 @@ public partial class MainWindow : Window
         ShowSelectedAnimal(animal);
     }
 
+    private void LiveAnimalsGrid_MouseDoubleClick(
+        object sender,
+        System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (LiveAnimalsGrid.SelectedItem is LiveAnimalView animal)
+        {
+            Radar.SelectedAnimal = animal;
+            Radar.StartFollowingAnimal(animal);
+            ShowSelectedAnimal(animal);
+        }
+    }
+
     private void ShowSelectedAnimal(LiveAnimalView animal)
     {
-        SelectedAnimalTitle.Text =
-            $"{animal.DisplaySpecies} · {animal.DistanceMeters:F0} m";
+        FollowSelectedAnimalButton.IsEnabled = Radar.IsMapMode;
 
-        var levelText = animal.Difficulty.StartsWith(
-            "~",
-            StringComparison.Ordinal)
-            ? $"{animal.Difficulty} (weight estimate)"
-            : animal.Difficulty;
+        SelectedAnimalTitle.Text = animal.DisplaySpecies;
+        SelectedDistanceText.Text = $"{animal.DistanceMeters:F0} m from player";
+        SelectedBadgesPanel.Visibility = Visibility.Visible;
+        SelectedMetricsGrid.Visibility = Visibility.Visible;
+        SelectedFooterPanel.Visibility = Visibility.Visible;
+        SelectedGenderText.Text = animal.Gender;
+        SelectedDifficultyText.Text = animal.Difficulty;
+        SelectedTrophyText.Text = animal.Trophy;
+        SelectedScoreText.Text = animal.Score > 0f ? $"{animal.Score:F2}" : "—";
+        SelectedWeightText.Text = animal.Weight > 0f ? $"{animal.Weight:F2} kg" : "—";
+        SelectedHealthText.Text = $"{animal.Health:F0} / {animal.MaxHealth:F0}";
 
-        SelectedAnimalDetails.Text =
-            $"Identity : {animal.IdentityText}\n" +
-            $"Gender   : {animal.Gender}\n" +
-            $"Level    : {levelText}\n" +
-            $"Trophy   : {animal.Trophy}\n" +
-            $"Fur      : {animal.Fur} ({animal.FurRarity})\n" +
-            $"Weight   : {animal.Weight:F2}\n" +
-            $"Score    : {animal.Score:F2}\n" +
-            $"Health   : {animal.Health:F1}/{animal.MaxHealth:F1}\n" +
-            $"XYZ      : {animal.X:F1}, {animal.Y:F1}, {animal.Z:F1}\n" +
-            $"Seed     : {animal.VisualVariationSeed}";
+        SelectedFurText.Text = animal.IsRare && animal.FurProbability > 0f
+            ? $"{animal.Fur} · {animal.FurProbabilityText}"
+            : animal.Fur;
+
+        SelectedThresholdText.Text = animal.NextTrophyText;
+
+        var trophyBrush = TrophyBrush(animal);
+        SelectedAccentBar.Background = trophyBrush;
+        SelectedTrophyBadge.BorderBrush = trophyBrush;
+        SelectedTrophyText.Foreground = trophyBrush;
+
+        var technical = new List<string>();
+        if (_showGroupInfo)
+        {
+            technical.Add($"Identity  {animal.IdentityText}");
+        }
+
+        if (_showCoordinates)
+        {
+            technical.Add($"XYZ       {animal.X:F1}, {animal.Y:F1}, {animal.Z:F1}");
+        }
+
+        var experimentalNativeLevel =
+            _session.ReadExperimentalNativeDifficulty(animal);
+        if (experimentalNativeLevel is int nativeLevel)
+        {
+            technical.Add(
+                $"Native?   {FormatDifficultyLevel(nativeLevel)}  [*(entity+0x18)+0x08]");
+        }
+
+        technical.Add($"Seed      {animal.VisualVariationSeed}");
+        technical.Add($"Address   0x{animal.Address.ToInt64():X}");
+        SelectedTechnicalText.Text = string.Join(Environment.NewLine, technical);
+        SelectedTechnicalPanel.Visibility =
+            _showDeveloperDetails
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        UpdateFollowUi();
+    }
+
+    private void ClearSelectedAnimal()
+    {
+        Radar.SelectedAnimal = null;
+        LiveAnimalsGrid.SelectedItem = null;
+        FollowSelectedAnimalButton.IsEnabled = false;
+
+        SelectedAnimalTitle.Text = "Select an animal";
+        SelectedDistanceText.Text = "Click a marker or loaded animal";
+        SelectedBadgesPanel.Visibility = Visibility.Collapsed;
+        SelectedMetricsGrid.Visibility = Visibility.Collapsed;
+        SelectedFooterPanel.Visibility = Visibility.Collapsed;
+        SelectedGenderText.Text = "—";
+        SelectedDifficultyText.Text = "—";
+        SelectedTrophyText.Text = "—";
+        SelectedScoreText.Text = "—";
+        SelectedWeightText.Text = "—";
+        SelectedFurText.Text = "—";
+        SelectedHealthText.Text = "—";
+        SelectedThresholdText.Text = "Select an animal to see trophy threshold context.";
+        SelectedTechnicalText.Text = "—";
+        SelectedAccentBar.Background = (Brush)FindResource("AccentBrush");
+        SelectedTrophyBadge.BorderBrush = (Brush)FindResource("BorderBrush");
+
+        UpdateFollowUi();
+    }
+
+    private Brush TrophyBrush(LiveAnimalView animal)
+    {
+        if (animal.IsGreatOne ||
+            ParseDifficultyLevel(animal.Difficulty) >= 10)
+        {
+            return (Brush)FindResource("DangerBrush");
+        }
+
+        if (string.Equals(animal.Trophy, "Diamond", StringComparison.OrdinalIgnoreCase) ||
+            ParseDifficultyLevel(animal.Difficulty) >= 9)
+        {
+            return (Brush)FindResource("DiamondBrush");
+        }
+
+        if (string.Equals(animal.Trophy, "Gold", StringComparison.OrdinalIgnoreCase))
+        {
+            return (Brush)FindResource("GoldBrush");
+        }
+
+        if (string.Equals(animal.Trophy, "Silver", StringComparison.OrdinalIgnoreCase))
+        {
+            return (Brush)FindResource("SilverBrush");
+        }
+
+        return animal.IsRare
+            ? (Brush)FindResource("RareBrush")
+            : (Brush)FindResource("NormalBrush");
+    }
+
+    private void InterfaceSettings_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing)
+        {
+            return;
+        }
+
+        Topmost = AlwaysOnTopCheck.IsChecked == true;
+        _showGroupInfo = ShowGroupCheck.IsChecked == true;
+        _showCoordinates = ShowCoordinatesCheck.IsChecked == true;
+        _showDeveloperDetails = ShowDeveloperCheck.IsChecked == true;
+        Radar.ShowReferences = ShowOutpostsCheck.IsChecked == true;
+
+        if (Radar.SelectedAnimal is { } selected)
+        {
+            ShowSelectedAnimal(selected);
+        }
+        else
+        {
+            SelectedTechnicalPanel.Visibility =
+                _showDeveloperDetails
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+        }
+    }
+
+    private void FollowPlayerButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (Radar.FollowMode == RadarFollowMode.Player)
+        {
+            Radar.StopFollowing();
+            return;
+        }
+
+        if (!Radar.StartFollowingPlayer())
+        {
+            FollowingStatusText.Text =
+                "Following requires a calibrated reserve map";
+            FollowingStatusText.Foreground =
+                (Brush)FindResource("WarnBrush");
+        }
+    }
+
+    private void FollowSelectedAnimalButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (Radar.SelectedAnimal is not { } animal)
+        {
+            return;
+        }
+
+        if (Radar.FollowMode == RadarFollowMode.Animal &&
+            Radar.FollowedAnimal?.Address == animal.Address)
+        {
+            Radar.StopFollowing();
+            return;
+        }
+
+        if (!Radar.StartFollowingAnimal(animal))
+        {
+            FollowingStatusText.Text =
+                "Following requires a calibrated reserve map";
+            FollowingStatusText.Foreground =
+                (Brush)FindResource("WarnBrush");
+        }
+    }
+
+    private void StopFollowingButton_Click(
+        object sender,
+        RoutedEventArgs e) =>
+        Radar.StopFollowing();
+
+    private void UpdateFollowUi()
+    {
+        if (FollowingStatusText is null ||
+            FollowPlayerButton is null ||
+            FollowSelectedAnimalButton is null ||
+            StopFollowingButton is null)
+        {
+            return;
+        }
+
+        var accent = (Brush)FindResource("AccentBrush");
+        var secondary = (Brush)FindResource("TextSecondary");
+        var raised = (Brush)FindResource("PanelRaised");
+        var muted = (Brush)FindResource("AccentMuted");
+        var border = (Brush)FindResource("BorderStrong");
+
+        var followingPlayer = Radar.FollowMode == RadarFollowMode.Player;
+        FollowPlayerButton.Background = followingPlayer ? muted : raised;
+        FollowPlayerButton.BorderBrush = followingPlayer ? accent : border;
+
+        StopFollowingButton.IsEnabled =
+            Radar.FollowMode != RadarFollowMode.None;
+
+        var selected = Radar.SelectedAnimal;
+        var followingSelected =
+            Radar.FollowMode == RadarFollowMode.Animal &&
+            selected is not null &&
+            Radar.FollowedAnimal?.Address == selected.Address;
+
+        FollowSelectedAnimalButton.IsEnabled =
+            Radar.IsMapMode &&
+            selected is not null;
+        FollowSelectedAnimalButton.Background =
+            followingSelected ? muted : (Brush)FindResource("PanelRaised");
+        FollowSelectedAnimalButton.BorderBrush =
+            followingSelected ? accent : border;
+
+        switch (Radar.FollowMode)
+        {
+            case RadarFollowMode.Player:
+                FollowingStatusText.Text = "FOLLOWING PLAYER";
+                FollowingStatusText.Foreground = accent;
+                break;
+
+            case RadarFollowMode.Animal when Radar.FollowedAnimal is { } animal:
+                FollowingStatusText.Text =
+                    $"FOLLOWING · {animal.DisplaySpecies} · {animal.Difficulty}";
+                FollowingStatusText.Foreground = accent;
+                break;
+
+            default:
+                FollowingStatusText.Text = "Free navigation";
+                FollowingStatusText.Foreground = secondary;
+                break;
+        }
     }
 
     private void ProbeDifficultyButton_Click(
@@ -828,10 +1269,10 @@ public partial class MainWindow : Window
     private void SetConnected()
     {
         BuildMapsFromGameButton.IsEnabled = true;
-        StatusText.Text = $"Connected · PID {_session.ProcessId}";
-        StatusText.Foreground = new SolidColorBrush(Color.FromRgb(187, 247, 208));
-        StatusPill.Background = new SolidColorBrush(Color.FromRgb(20, 83, 45));
-        StatusPill.BorderBrush = new SolidColorBrush(Color.FromRgb(34, 197, 94));
+        StatusText.Text = "COTW CONNECTED";
+        StatusText.Foreground = (Brush)FindResource("GoodBrush");
+        StatusPill.Background = new SolidColorBrush(Color.FromRgb(18, 31, 20));
+        StatusPill.BorderBrush = new SolidColorBrush(Color.FromRgb(49, 91, 57));
     }
 
     private void SetOffline(string message)
@@ -842,9 +1283,9 @@ public partial class MainWindow : Window
         }
 
         StatusText.Text = "Offline";
-        StatusText.Foreground = new SolidColorBrush(Color.FromRgb(203, 213, 225));
-        StatusPill.Background = new SolidColorBrush(Color.FromRgb(31, 41, 55));
-        StatusPill.BorderBrush = new SolidColorBrush(Color.FromRgb(71, 85, 105));
+        StatusText.Foreground = (Brush)FindResource("TextSecondary");
+        StatusPill.Background = (Brush)FindResource("PanelRaised");
+        StatusPill.BorderBrush = (Brush)FindResource("BorderBrush");
         RuntimeStatusText.Text = message;
     }
 }
