@@ -21,6 +21,9 @@ public partial class MainWindow : Window
     private IReadOnlyList<LiveAnimalView> _latestLiveAnimals =
         Array.Empty<LiveAnimalView>();
     private bool _centerMapOnNextSnapshot;
+    private bool _showGroupInfo = true;
+    private bool _showCoordinates = true;
+    private bool _showDeveloperDetails;
 
     public MainWindow()
     {
