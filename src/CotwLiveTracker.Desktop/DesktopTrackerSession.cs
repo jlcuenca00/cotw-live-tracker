@@ -158,6 +158,13 @@ internal sealed class DesktopTrackerSession : IDisposable
             Trophy: record?.Trophy ?? "Unknown",
             Fur: record?.FurName ?? "Unknown",
             FurRarity: record?.FurRarity ?? "Unknown",
+            FurProbability: record?.FurProbability ?? 0f,
+            NextTrophyText: record is null
+                ? "Trophy threshold unavailable until population identity resolves."
+                : PopulationAnimalMetadataCatalog.GetNextTrophyThresholdText(
+                    record.Species,
+                    live.Score,
+                    record.IsGreatOne),
             IsRare: record?.IsRareFur ?? false,
             IsGreatOne: record?.IsGreatOne ?? false,
             DistanceMeters: live.DistanceMeters,
