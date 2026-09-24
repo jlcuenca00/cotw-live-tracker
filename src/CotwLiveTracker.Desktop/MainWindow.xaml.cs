@@ -483,6 +483,22 @@ public partial class MainWindow : Window
         ApplyLiveFilters(_latestLiveAnimals);
     }
 
+    private static string FormatDifficultyLevel(int level) =>
+        level switch
+        {
+            1 => "1-Trivial",
+            2 => "2-Minor",
+            3 => "3-Very Easy",
+            4 => "4-Easy",
+            5 => "5-Medium",
+            6 => "6-Hard",
+            7 => "7-Very Hard",
+            8 => "8-Mythical",
+            9 => "9-Legendary",
+            10 => "10-Fabled",
+            _ => level.ToString()
+        };
+
     private static int ParseDifficultyLevel(
         string value)
     {
@@ -975,6 +991,14 @@ public partial class MainWindow : Window
         if (_showCoordinates)
         {
             technical.Add($"XYZ       {animal.X:F1}, {animal.Y:F1}, {animal.Z:F1}");
+        }
+
+        var experimentalNativeLevel =
+            _session.ReadExperimentalNativeDifficulty(animal);
+        if (experimentalNativeLevel is int nativeLevel)
+        {
+            technical.Add(
+                $"Native?   {FormatDifficultyLevel(nativeLevel)}  [*(entity+0x18)+0x08]");
         }
 
         technical.Add($"Seed      {animal.VisualVariationSeed}");
