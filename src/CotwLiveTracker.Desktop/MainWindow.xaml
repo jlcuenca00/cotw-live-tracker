@@ -340,7 +340,7 @@
 
                                     <Border BorderBrush="{StaticResource BorderBrush}"
                                             BorderThickness="0,1,0,0"
-                                            Margin="0,0,0,14"/>
+                                            Margin="{StaticResource FieldGap}"/>
 
                                     <CheckBox x:Name="LiveRareOnly"
                                               Content="Rare fur only"
@@ -910,16 +910,16 @@
                                      TextChanged="PopulationFilters_Changed"/>
                             <ComboBox x:Name="PopulationSexFilter"
                                       Width="100"
-                                      Margin="0,0,14,0"
+                                      Margin="{StaticResource ControlGap}"
                                       SelectionChanged="PopulationFilters_Changed"/>
                             <CheckBox x:Name="PopulationRareOnly"
                                       Content="Rare"
-                                      Margin="0,0,14,0"
+                                      Margin="{StaticResource ControlGap}"
                                       Checked="PopulationFilters_Changed"
                                       Unchecked="PopulationFilters_Changed"/>
                             <CheckBox x:Name="PopulationGreatOneOnly"
                                       Content="Great One"
-                                      Margin="0,0,14,0"
+                                      Margin="{StaticResource ControlGap}"
                                       Checked="PopulationFilters_Changed"
                                       Unchecked="PopulationFilters_Changed"/>
                             <Button Style="{StaticResource QuietButton}"
@@ -994,30 +994,30 @@
 
                                 <CheckBox x:Name="AlwaysOnTopCheck"
                                           Content="Always on top"
-                                          Margin="{StaticResource ControlGap}"
+                                          Margin="{StaticResource StackGap}"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowGroupCheck"
                                           Content="Show herd / group identity"
                                           IsChecked="True"
-                                          Margin="{StaticResource ControlGap}"
+                                          Margin="{StaticResource StackGap}"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowCoordinatesCheck"
                                           Content="Show world coordinates"
                                           IsChecked="True"
-                                          Margin="{StaticResource ControlGap}"
+                                          Margin="{StaticResource StackGap}"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowDeveloperCheck"
                                           Content="Show developer details"
-                                          Margin="{StaticResource ControlGap}"
+                                          Margin="{StaticResource StackGap}"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
                                 <CheckBox x:Name="ShowOutpostsCheck"
                                           Content="Show outpost calibration references on map"
                                           IsChecked="True"
-                                          Margin="{StaticResource ControlGap}"
+                                          Margin="{StaticResource StackGap}"
                                           Checked="InterfaceSettings_Changed"
                                           Unchecked="InterfaceSettings_Changed"/>
 
@@ -1028,7 +1028,7 @@
                                            Text="Map setup status"
                                            Foreground="{StaticResource TextSecondary}"
                                            TextWrapping="Wrap"
-                                           Margin="0,0,0,14"/>
+                                           Margin="{StaticResource FieldGap}"/>
                                 <StackPanel Orientation="Horizontal">
                                     <Button x:Name="BuildMapsFromGameButton"
                                             Style="{StaticResource PrimaryButton}"
@@ -1083,14 +1083,14 @@
                                                    FontFamily="Cascadia Mono, Consolas"
                                                    FontSize="10"
                                                    TextWrapping="Wrap"
-                                                   Margin="0,0,0,14"/>
+                                                   Margin="{StaticResource FieldGap}"/>
                                         <TextBlock Text="Executable SHA-256" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
                                         <TextBlock x:Name="SettingsHashText"
                                                    Text="—"
                                                    FontFamily="Cascadia Mono, Consolas"
                                                    FontSize="10"
                                                    TextWrapping="Wrap"
-                                                   Margin="0,0,0,14"/>
+                                                   Margin="{StaticResource FieldGap}"/>
                                         <TextBlock Text="READ-ONLY · VM_READ / QUERY"
                                                    Foreground="{StaticResource GoodBrush}"
                                                    FontWeight="SemiBold"/>
