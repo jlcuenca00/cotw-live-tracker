@@ -183,6 +183,21 @@ internal sealed class DesktopTrackerSession : IDisposable
             Address: live.Address);
     }
 
+    public int? ReadExperimentalNativeDifficulty(
+        LiveAnimalView animal)
+    {
+        ArgumentNullException.ThrowIfNull(animal);
+
+        if (!IsAttached || _memory is null)
+        {
+            return null;
+        }
+
+        return AnimalDifficultyMemoryProbe.TryReadPreferredCandidate(
+            _memory,
+            animal.Address);
+    }
+
     public string ProbeDifficulty(
         LiveAnimalView animal)
     {
