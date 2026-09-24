@@ -30,8 +30,10 @@
         <Thickness x:Key="PageGutter">20</Thickness>
         <Thickness x:Key="PanelPadding">16</Thickness>
         <Thickness x:Key="PanelPaddingCompact">12</Thickness>
-        <Thickness x:Key="FieldGap">0,0,0,14</Thickness>
-        <Thickness x:Key="SectionGap">0,0,0,18</Thickness>
+        <Thickness x:Key="FieldGap">0,0,0,16</Thickness>
+        <Thickness x:Key="SectionGap">0,0,0,20</Thickness>
+        <Thickness x:Key="InlineGap">0,0,8,0</Thickness>
+        <Thickness x:Key="ControlGap">0,0,12,0</Thickness>
 
         <Style TargetType="Window">
             <Setter Property="Background" Value="{StaticResource AppBackground}"/>
